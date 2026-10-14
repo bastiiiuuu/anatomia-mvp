@@ -6,7 +6,14 @@ self.onmessage=({data})=>{
     const vertexCount=meshes.reduce((n,m)=>n+m.attributes.position.count,0);
     const indexCount=meshes.reduce((n,m)=>n+m.index.length,0);
     const attributes={};
-    for(const key of names)attributes[key]={itemSize:meshes[0].attributes[key].itemSize,array:new Float32Array(vertexCount*meshes[0].attributes[key].itemSize)};
+    for(const key of names) {
+      const itemSize=meshes[0].attributes[key].itemSize;
+      // Signed normalized normals retain angular precision while halving their
+      // upload/storage cost. Positions and selected source geometry stay exact.
+      const normalized=key==='normal'&&itemSize===3;
+      const ArrayType=normalized?Int16Array:Float32Array;
+      attributes[key]={itemSize,normalized,array:new ArrayType(vertexCount*itemSize)};
+    }
     const IndexArray=vertexCount>65535?Uint32Array:Uint16Array;
     const index=new IndexArray(indexCount),ranges=[],min=[Infinity,Infinity,Infinity],max=[-Infinity,-Infinity,-Infinity];
     let vertexOffset=0,indexOffset=0;
@@ -25,7 +32,11 @@ self.onmessage=({data})=>{
               px=n[0]*x+n[3]*y+n[6]*z;py=n[1]*x+n[4]*y+n[7]*z;pz=n[2]*x+n[5]*y+n[8]*z;
               const length=Math.hypot(px,py,pz)||1;px/=length;py/=length;pz/=length;
             }
-            out[offset+i]=px;out[offset+i+1]=py;out[offset+i+2]=pz;
+            if(attributes[key].normalized) {
+              out[offset+i]=Math.round(Math.max(-1,Math.min(1,px))*32767);
+              out[offset+i+1]=Math.round(Math.max(-1,Math.min(1,py))*32767);
+              out[offset+i+2]=Math.round(Math.max(-1,Math.min(1,pz))*32767);
+            }else {out[offset+i]=px;out[offset+i+1]=py;out[offset+i+2]=pz;}
           }
         }else out.set(a.array,offset);
       }

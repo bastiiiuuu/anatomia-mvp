@@ -11,14 +11,20 @@ export class AnatomyBatches {
   constructor(scene, materials) {
     this.scene = scene; this.materials = materials;
     this.batches = []; this.details = []; this.detailSources = [];
+    this.disposed=false;this.workerError=null;
     const workerUrl=new URL('./batch-worker.js',import.meta.url);workerUrl.search=new URL(import.meta.url).search;
     this.worker=new Worker(workerUrl);this.pending=new Map();this.sequence=0;
     this.worker.onmessage=({data})=>{const pending=this.pending.get(data.id);if(!pending)return;this.pending.delete(data.id);if(data.error)pending.reject(new Error(data.error));else pending.resolve(data)};
-    this.worker.onerror=error=>{for(const pending of this.pending.values())pending.reject(new Error(error.message));this.pending.clear()};
+    this.worker.onerror=error=>{
+      this.workerError=new Error(error.message||'No se pudo preparar la geometría.');
+      for(const pending of this.pending.values())pending.reject(this.workerError);
+      this.pending.clear();this.worker.terminate();
+    };
     this.stats = { sourceMeshes: 0, batches: 0, vertexBytes: 0, indexBytes: 0 };
   }
 
   async build(entries) {
+    this.assertActive();
     const groups = new Map();
     for (const entry of entries.values()) for (const mesh of entry.meshes) {
       if(mesh.userData.batchAssigned)continue;
@@ -37,10 +43,12 @@ export class AnatomyBatches {
       groups.get(key).push(mesh); this.stats.sourceMeshes++;
     }
     for (const meshes of groups.values()) {
+      this.assertActive();
       const result=await this.prepare(meshes);
+      this.assertActive();
       const geometry=new THREE.BufferGeometry();
       for(const [key,a] of Object.entries(result.attributes)) {
-        geometry.setAttribute(key,new THREE.BufferAttribute(a.array,a.itemSize));this.stats.vertexBytes+=a.array.byteLength;
+        geometry.setAttribute(key,new THREE.BufferAttribute(a.array,a.itemSize,!!a.normalized));this.stats.vertexBytes+=a.array.byteLength;
       }
       const IndexArray=result.index.constructor,originalIndex=result.index;
       const members=meshes.map((mesh,i)=>({...result.ranges[i],mesh}));
@@ -55,11 +63,13 @@ export class AnatomyBatches {
       for(const mesh of meshes)mesh.userData.batchAssigned=true;
       this.stats.indexBytes+=originalIndex.byteLength;
       await nextTask();
+      this.assertActive();
     }
     this.stats.batches=this.batches.length;
   }
 
   prepare(meshes) {
+    this.assertActive();
     const normal=new THREE.Matrix3(),transfer=[];
     const input=meshes.map(mesh=>{
       const attributes={};
@@ -73,7 +83,16 @@ export class AnatomyBatches {
       return {attributes,index,matrix:mesh.matrixWorld.elements.slice(),normal:normal.elements.slice(),reflected:mesh.matrixWorld.determinant()<0};
     });
     const id=++this.sequence;
-    return new Promise((resolve,reject)=>{this.pending.set(id,{resolve,reject});this.worker.postMessage({id,meshes:input},transfer)});
+    return new Promise((resolve,reject)=>{
+      this.pending.set(id,{resolve,reject});
+      try{this.worker.postMessage({id,meshes:input},transfer);}
+      catch(error){this.pending.delete(id);reject(error);}
+    });
+  }
+
+  assertActive() {
+    if(this.disposed)throw new DOMException('Viewer disposed','AbortError');
+    if(this.workerError)throw this.workerError;
   }
 
   ghostFor(batch) {
@@ -90,6 +109,7 @@ export class AnatomyBatches {
 
   /** Upload only index ranges changed by selection/visibility; never rebuild vertices. */
   update(entries, selectedId) {
+    if(this.disposed)return;
     const nextSources=[];
     for(const entry of entries.values())for(const mesh of entry.meshes) {
       if(mesh.visible&&(entry.record.Mesh_ID===selectedId||mesh.userData.unbatched))nextSources.push(mesh);
@@ -153,6 +173,8 @@ export class AnatomyBatches {
   }
 
   dispose() {
+    if(this.disposed)return;
+    this.disposed=true;
     this.worker.terminate();for(const pending of this.pending.values())pending.reject(new DOMException('Viewer disposed','AbortError'));this.pending.clear();
     for(const detail of this.details)this.scene.remove(detail);
     for(const batch of this.batches) {

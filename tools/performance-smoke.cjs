@@ -39,6 +39,7 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     }
     if(!baseline){
       assert.ok(metrics.drawCalls<=25,'Full muscular view uses region batches');
+      assert.ok(report.diagnostics.batches.vertexBytes<25000000,'Compact normals keep the original muscular batches under 25 MB of vertex arrays');
       assert.deepEqual(report.diagnostics.loadedAssets,['muscular'],'Unused layers are not decoded at startup');
       await page.locator('#isolate').click();
       assert.ok(await page.evaluate(id=>window.atlasDebug.entries.get(id).meshes.every(m=>m.material.color.getHexString()==='35cc83'),colors.id),'Leaving isolation immediately restores green');
@@ -46,6 +47,19 @@ const {chromium} = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
       assert.ok(await page.evaluate(id=>window.atlasDebug.entries.get(id).meshes.every(m=>m.material===m.userData.sourceMaterials[0]),colors.id),'X-ray also uses the exact original material');
       await page.evaluate(()=>window.atlasDebug.clear());
       assert.ok(await page.evaluate(()=>[...window.atlasDebug.entries.values()].every(e=>e.meshes.every(m=>m.material===m.userData.sourceMaterials[0]))),'Deselecting returns every mesh to its source material');
+      await page.locator('#study-panel [data-close-panel]').click();
+      await page.locator('#global-xray').click();
+      await page.evaluate(id=>window.atlasDebug.select(id,false),colors.id);
+      assert.ok(await page.evaluate(id=>{
+        const a=window.atlasDebug;
+        return a.state.isolated&&!a.state.xray&&document.getElementById('isolate-mode').value==='xray'&&a.entries.get(id).meshes.every(m=>m.material===m.userData.sourceMaterials[0]);
+      },colors.id),'Selecting inside global X-ray restores the exact natural material, even with automatic isolation disabled');
+      await page.locator('#global-xray').click();
+      assert.ok(await page.evaluate(id=>{
+        const a=window.atlasDebug;
+        return !a.state.isolated&&!a.state.xray&&a.entries.get(id).meshes.every(m=>m.material.color.getHexString()==='35cc83');
+      },colors.id),'One tap exits X-ray isolation and restores context green');
+      await page.evaluate(()=>window.atlasDebug.clear());
       const beforePause=await page.evaluate(()=>{window.dispatchEvent(new PageTransitionEvent('pagehide',{persisted:true}));return window.atlasDebug.performance.snapshot().frames.callbacks});
       await page.locator('#render-quality').selectOption('fast');await page.waitForTimeout(100);
       assert.equal(await page.evaluate(()=>window.atlasDebug.performance.snapshot().frames.callbacks),beforePause);

@@ -282,7 +282,7 @@ async function loadModel(assets) {
         object.material=Array.isArray(object.material)?originals:originals[0];
       });
       body.add(gltf.scene); completed += asset.bytes;loadedAssets.add(asset.key);
-      await new Promise(requestAnimationFrame);
+      await cancellable(new Promise(requestAnimationFrame),lifecycle.signal);
     }
     return body;
   } finally { draco.dispose(); }
@@ -585,6 +585,11 @@ async function selectStructure(id, fly = false) {
   state.selected = id;
   state.hidden.delete(id);
   const layer = layerOf(entry); state.layers[layer] = true;
+  // A selection inside global X-ray becomes focused X-ray isolation. Keep one
+  // visual state so both isolation controls restore green with a single tap.
+  if(state.xray) {
+    state.xray=false;state.isolated=true;$('isolate-mode').value='xray';
+  }
   if (layer === 'muscular' && $('auto-isolate-muscle').checked) {
     state.isolated = true; state.xray = false; state.autoIsolatedMuscle = true;
     // Keep the chosen isolation mode: hidden or a translucent anatomical context.
@@ -931,6 +936,7 @@ async function start() {
     $('loading-progress').value=100;$('loading').hidden = true;
     announce(`Atlas real cargado · ${metadata.structures.length} estructuras`);
   } catch (error) {
+    if(lifecycle.signal.aborted)return;
     console.error(error);
     $('loading').classList.add('error'); $('loading').querySelector('.spinner').hidden = true;
     $('loading').querySelector('span').textContent = `No se pudo abrir el visor: ${error.message}`;

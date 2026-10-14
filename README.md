@@ -104,6 +104,10 @@ El rendimiento real al girar el cuerpo completo aún depende de la GPU, temperat
 
 La revisión posterior de memoria comparte el buffer maestro de índices entre las pasadas y usa rangos contiguos para selecciones sencillas. Los buffers de reordenación se crean solamente para filtros que los necesitan. En la carga muscular inicial, esto reduce los arrays de índices preparados de 46.529.640 a 23.264.820 bytes, manteniendo los 1.819.008 triángulos visibles y 14 llamadas de dibujo. Las cajas de cada pasada se recalculan a partir de las piezas activas, para que el frustum culling descarte la geometría que ya no pertenece al filtro. Las descargas GLB son cancelables y verifican el tamaño del catálogo; las consultas JSON y Wikipedia tienen tiempo límite.
 
+La siguiente revisión compacta únicamente las normales de los lotes con enteros normalizados de 16 bits. Sus arrays de vértices musculares pasan de 32.584.944 a 24.438.708 bytes (25 % menos), sin cambiar posiciones, índices ni triángulos. La pieza seleccionada conserva los atributos originales en Float32. La comprobación de 90.876 muestras de las tres capas obtuvo un error vectorial máximo de normales de 0,0000261 y verifica también los reflejos bilaterales. La cancelación entre lotes termina el worker y rechaza la carga sin dejar geometrías ni promesas pendientes.
+
+Seleccionar dentro de Rayos X global transforma esa vista en aislamiento transparente de la pieza: usa su material natural, incluso si el aislamiento automático está desmarcado. Un único toque para salir restaura el resaltado verde.
+
 El catálogo procedural previo y los scripts Blender permanecen como material de desarrollo y pruebas, fuera de la escena activa. No se usa un fallback silencioso al modelo procedural si falla un GLB.
 
 ## Fichas y Wikipedia
@@ -144,6 +148,7 @@ node tools/tablet-smoke.cjs
 node tools/performance-smoke.cjs
 node tools/picking-smoke.cjs
 node tools/resolution-smoke.cjs
+node tools/geometry-smoke.cjs
 node tools/static-smoke.cjs
 ```
 
