@@ -1,6 +1,4 @@
-# Atlas · anatomía real 3D
 
-Disponible en **http://127.0.0.1:8000**. El visor activo carga GLB anatómicos reales y ya no utiliza las geometrías procedurales como representación del cuerpo.
 
 ## Iniciar
 
