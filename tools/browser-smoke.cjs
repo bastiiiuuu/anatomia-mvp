@@ -80,7 +80,7 @@ const { chromium } = process.env.PLAYWRIGHT_MODULE ? require(process.env.PLAYWRI
     assert.ok((await visibleIds()).length > 1, 'Selecting a bone exits automatic muscle isolation');
     await search('LCA', expected('Anterior cruciate ligament'));
     await page.locator('#isolate-mode').selectOption('xray'); await page.locator('#isolate').click();
-    const ghost = await page.evaluate(() => [...window.atlasDebug.entries.values()].filter(e => e.record.Mesh_ID !== window.atlasDebug.state.selected)
+    const ghost = await page.evaluate(() => [...window.atlasDebug.entries.values()].filter(e => e.record.Mesh_ID !== window.atlasDebug.state.selected&&e.meshes.some(m=>m.visible))
       .every(e => e.meshes.every(m => [].concat(m.material).every(mat => Math.abs(mat.opacity - .15) < .001))));
     assert.ok(ghost);
     await page.locator('#isolate-mode').selectOption('hide');

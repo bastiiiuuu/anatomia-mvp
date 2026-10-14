@@ -39,6 +39,7 @@ let renderWidth=1, renderHeight=1, labelWidth=0, labelHeight=0, labelDirty=true,
 let lastConnectorPosition='';
 const cameraDirection = new THREE.Vector3(), labelDirection = new THREE.Vector3(), boxHit = new THREE.Vector3();
 const visibleEntries = [];
+let hasGhostContext=false;
 let listMatches=[], listPage=0;
 const PAGE_SIZE=40;
 let studyController, studySequence=0, searchTimer, wikiTimer;
@@ -179,7 +180,7 @@ function pickStructure() {
   }
   candidates.sort((a,b)=>a.distance-b.distance);
   const preferSelected=state.isolated&&$('isolate-mode').value==='xray';
-  const preferOpaque=state.xray||state.sectionContext==='ghost';
+  const preferOpaque=state.xray||state.sectionContext==='ghost'||hasGhostContext;
   let best=null,opaque=null,selected=null;
   for(const {entry,distance} of candidates) {
     const limit=preferSelected?(selected?.distance??Infinity):preferOpaque?(opaque?.distance??Infinity):(best?.distance??Infinity);
@@ -397,10 +398,10 @@ function inStudySection(entry) {
     (state.side === 'both' || s.side === state.side || s.side === 'midline');
 }
 
-function sectionBox() {
+function sectionBox(includeHidden=false) {
   const box = new THREE.Box3();
   for (const entry of state.entries.values()) {
-    if (inStudySection(entry) && !state.hidden.has(entry.record.Mesh_ID)) box.union(entry.box);
+    if (inStudySection(entry) && (includeHidden||!state.hidden.has(entry.record.Mesh_ID))) box.union(entry.box);
   }
   return box.isEmpty() ? null : box;
 }
@@ -512,18 +513,23 @@ async function loadWikipedia(record) {
 function applyAppearance() {
   const start=performance.now();
   visibleEntries.length=0;
+  hasGhostContext=false;
+  const studyBox=state.muscleStudy?sectionBox(true):null;
   let count = 0;
   for (const [id, entry] of state.entries) {
     const selected = id === state.selected;
-    const outsideSection = state.muscleStudy && !inStudySection(entry);
+    const anatomicalContext=state.muscleStudy&&layerOf(entry)!=='muscular'&&studyBox&&entry.box.intersectsBox(studyBox)&&
+      (state.side==='both'||entry.record.side===state.side||entry.record.side==='midline');
+    const outsideSection = state.muscleStudy && !inStudySection(entry) && !anatomicalContext;
     const context = (state.isolated && !selected) || (outsideSection && state.sectionContext === 'ghost') ||
-      (state.xray && !selected && ['oseo', 'muscular'].includes(layerOf(entry)));
+      (state.xray && !selected && ['oseo', 'muscular'].includes(layerOf(entry))) || (anatomicalContext&&!selected);
     const visible = entry.meshes.length>0 && !state.hidden.has(id) && state.layers[layerOf(entry)] &&
       !(outsideSection && state.sectionContext === 'hide' && !selected) &&
       !(state.isolated && !selected && $('isolate-mode').value === 'hide');
     entry.visible=!!visible;
     if (visible) {count++;visibleEntries.push(entry);}
-    const mode=visualMode({selected,isolated:state.isolated,context});
+    const mode=visualMode({selected:visible&&selected,isolated:state.isolated,context:visible&&context});
+    if(visible&&mode==='ghost')hasGhostContext=true;
     for (const mesh of entry.meshes) {
       mesh.visible = visible;
       if(mesh.userData.visualMode!==mode) {
@@ -756,6 +762,7 @@ function wireUI() {
   closePanels();
   document.querySelectorAll('[data-layer][type=checkbox]').forEach(input => on(input,'change', async () => {
     const enabled=input.checked,layer=input.dataset.layer;
+    if(enabled&&layer!=='muscular'&&state.autoIsolatedMuscle){state.isolated=false;state.autoIsolatedMuscle=false;}
     state.layers[layer] = enabled; applyAppearance();
     if(enabled)try{await ensureLayers({[layer]:true});applyAppearance();}catch{state.layers[layer]=false;input.checked=false;applyAppearance();announce('No se pudo cargar esa capa.');}
   }));
