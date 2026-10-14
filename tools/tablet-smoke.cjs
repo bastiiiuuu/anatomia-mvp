@@ -79,6 +79,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     assert.ok(await fits());
     await page.locator('#render-quality').selectOption('fast');assert.equal(await page.evaluate(()=>window.atlasDebug.renderer.getPixelRatio()),1);
     await page.setViewportSize({width:390,height:844});await settled();
+    assert.equal(await page.locator('#search').evaluate(input=>getComputedStyle(input).fontSize),'16px','Touch search remains legible without focus zoom');
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
     assert.ok(await fits(),'Phone also keeps the section inside the canvas');
     assert.deepEqual(errors,[]);

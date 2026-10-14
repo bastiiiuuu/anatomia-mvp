@@ -685,6 +685,8 @@ function render(now) {
     if (t === 1) state.flight = null;
   }
   const controlsChanged=controls.update();
+  const active=!!state.flight||activeGesture||controlsChanged;
+  if(resolution.prepare(active))state.needsRender=true;
   if (state.needsRender && state.selected && state.ready) {
     const entry = state.entries.get(state.selected);
     labelPoint.copy(entry.center);
@@ -714,7 +716,7 @@ function render(now) {
     const start=performance.now();
     renderer.render(scene, camera);
     frames.stats.frames++;
-    resolution.sample(now,performance.now()-start,!!state.flight||activeGesture||controlsChanged);
+    resolution.sample(now,performance.now()-start,active);
     state.needsRender = false;
   }
   return !!state.flight || controlsChanged;

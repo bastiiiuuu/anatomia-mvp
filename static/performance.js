@@ -21,6 +21,7 @@ export class AdaptiveResolution {
     this.ratio=1;this.samples=[];this.lastChange=0;this.lastTime=0;
     this.stats={resolutionChanges:0,frameMs:0,renderMs:0,frames:0};
     this.apply(this.ceiling());
+    this.interactionRatio=this.ratio;this.interacting=false;
   }
   ceiling() {
     if(this.mode==='fast')return 1;
@@ -35,8 +36,25 @@ export class AdaptiveResolution {
     if(ratio===this.ratio&&this.renderer.getPixelRatio()===ratio)return;
     this.ratio=ratio;this.renderer.setPixelRatio(ratio);this.stats.resolutionChanges++;
   }
-  setMode(mode) {this.mode=mode;this.samples.length=0;this.lastTime=0;this.apply(this.ceiling());}
-  resize() {this.apply(Math.min(this.ratio,this.ceiling()));}
+  setMode(mode) {
+    this.mode=mode;this.samples.length=0;this.lastTime=0;this.interacting=false;
+    this.apply(this.ceiling());this.interactionRatio=this.ratio;
+  }
+  resize() {
+    const ceiling=this.ceiling();this.interactionRatio=Math.min(this.interactionRatio,ceiling);
+    this.apply(this.mode==='auto'&&this.interacting?Math.min(this.ratio,ceiling):ceiling);
+  }
+  prepare(active) {
+    if(this.mode!=='auto'||active===this.interacting)return false;
+    const before=this.ratio;this.interacting=active;this.samples.length=0;this.lastTime=0;
+    if(active)this.apply(Math.min(this.interactionRatio,this.ceiling()));
+    else {
+      // Keep the learned movement resolution, but restore detail in the last
+      // still frame. This never starts a separate animation or timer.
+      this.interactionRatio=this.ratio;this.apply(this.ceiling());
+    }
+    return before!==this.ratio;
+  }
   sample(now,renderMs,active) {
     this.stats.frames++;this.stats.renderMs=renderMs;
     if(this.mode!=='auto'||!active){this.lastTime=0;return;}
@@ -49,6 +67,6 @@ export class AdaptiveResolution {
     const average=this.samples.reduce((a,b)=>a+b,0)/this.samples.length;
     this.stats.frameMs=average;
     if(average>22&&this.ratio>.8){this.apply(Math.max(.8,this.ratio-.2));this.lastChange=now;this.samples.length=0;}
-    else if(average<15&&this.ratio<this.ceiling()){this.apply(Math.min(this.ceiling(),this.ratio+.1));this.lastChange=now;this.samples.length=0;}
+    else if(average<18&&this.ratio<this.ceiling()){this.apply(Math.min(this.ceiling(),this.ratio+.1));this.lastChange=now;this.samples.length=0;}
   }
 }

@@ -24,3 +24,4 @@ jobs:
           for module in static/viewer.js static/data-source.js static/materials.js static/performance.js static/batch-renderer.js static/batch-worker.js; do
             node --input-type=module --check < "$module"
           done
+      - run: node tools/resolution-smoke.cjs

@@ -27,3 +27,5 @@
 @media(max-width:900px){.layers-panel h1{font-size:26px}.floating-label{max-width:290px;font-size:12px}.scene-actions button{font-size:11px}.scene-heading{max-width:42%}.study-open .study-panel{background:#102134f9}.explorer-open .layers-panel{background:#102134f9}}
 @media(max-width:520px){.atlas-presets button{font-size:11px;padding:9px}.scene-actions button{font-size:10px}.scene-heading select{font-size:10px}.floating-label{font-size:11px;max-width:230px}.breadcrumbs{font-size:7px}.layers-panel h1{font-size:25px}.brand{font-size:23px}.quality-control{color:#a3b9c9}}
 @media(pointer:coarse){.layers-panel,.study-panel{backdrop-filter:none}.structure-item{content-visibility:visible}.floating-label{backdrop-filter:none}.view-tools button{min-width:44px;min-height:44px}}
+/* Avoid input-focus zoom on touch browsers; keep scrolling inside the open sheet. */
+@media(pointer:coarse){.search-wrap input,#structure-filter{font-size:16px}.layers-panel,.study-panel,.results{overscroll-behavior:contain}.result{min-height:48px;font-size:14px}.result small{font-size:11px}}

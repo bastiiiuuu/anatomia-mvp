@@ -1,0 +1,34 @@
+/* Reproducible frame timing: no browser, network, GPU or wall-clock waits. */
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+(async()=>{
+  const source=fs.readFileSync(path.join(__dirname,'../static/performance.js'));
+  const {AdaptiveResolution}=await import('data:text/javascript;base64,'+source.toString('base64'));
+  globalThis.devicePixelRatio=3;
+  let ratio=1;
+  const renderer={getPixelRatio:()=>ratio,setPixelRatio:value=>{ratio=value}};
+  const stage={clientWidth:400,clientHeight:600};
+  const quality=new AdaptiveResolution(renderer,stage,true);
+  assert.equal(ratio,1.5,'Automatic touch rendering respects the density cap');
+  let time=1000;
+  const motion=(interval,count)=>{for(let n=0;n<count;n++){time+=interval;quality.sample(time,2,true)}};
+  quality.prepare(true);motion(32,84);
+  const learned=ratio;
+  assert.ok(learned<1.5&&learned>=.8,'Sustained slow frames reduce movement resolution');
+  assert.ok(quality.prepare(false));
+  assert.equal(ratio,1.5,'The last still frame restores study detail');
+  const changes=quality.stats.resolutionChanges;
+  for(let n=0;n<100;n++)assert.equal(quality.prepare(false),false);
+  assert.equal(quality.stats.resolutionChanges,changes,'Idle calls never resize the framebuffer repeatedly');
+  quality.prepare(true);assert.equal(ratio,learned,'The next gesture reuses the learned movement resolution');
+  motion(1000/60,144);
+  assert.ok(ratio>learned,'A stable 60 Hz display can recover resolution');
+  quality.prepare(false);
+  quality.setMode('fast');quality.prepare(true);motion(32,84);quality.prepare(false);
+  assert.equal(ratio,1,'Manual fluid mode remains fixed');
+  quality.setMode('sharp');quality.prepare(true);motion(32,84);quality.prepare(false);
+  assert.equal(ratio,2,'Manual sharp mode retains its chosen cap');
+  quality.setMode('auto');stage.clientWidth=1200;stage.clientHeight=900;quality.resize();
+  assert.ok(stage.clientWidth*stage.clientHeight*ratio*ratio<=1800000,'Rotation still respects the framebuffer pixel budget');
+  stage.clientWidth=400;stage.clientHeight=600;quality.resize();assert.equal(ratio,1.5);
+  console.log('PASS: adaptive movement, sharp idle frame, learned next gesture, 60 Hz recovery, explicit quality modes and resize budget.');
+})().catch(error=>{console.error(error);process.exitCode=1});
