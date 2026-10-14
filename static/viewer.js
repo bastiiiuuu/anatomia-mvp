@@ -87,7 +87,7 @@ async function fetchModel(asset,onProgress) {
     }
     if(offset!==asset.bytes)throw new Error('La descarga del modelo quedó incompleta. Recarga la página.');
     return bytes.buffer;
-  }finally{reader.releaseLock();}
+  }catch(error){await reader.cancel().catch(()=>{});throw error;}finally{reader.releaseLock();}
 }
 
 function setupScene() {
@@ -318,7 +318,8 @@ function indexModel() {
     if(!object.geometry.boundingSphere)object.geometry.boundingSphere=object.geometry.boundingBox.getBoundingSphere(new THREE.Sphere());
     object.userData.indexed=true;
     const entry = state.entries.get(id); entry.meshes.push(object);
-    entry.box.union(new THREE.Box3().setFromObject(object));
+    object.userData.worldBox=object.geometry.boundingBox.clone().applyMatrix4(object.matrixWorld);
+    entry.box.union(object.userData.worldBox);
   });
   const expected=new Set(metadata.model.assets.filter(a=>loadedAssets.has(a.key)).flatMap(a=>Object.values(a.node_bindings)));
   const missing = [...state.entries.values()].filter(e => expected.has(e.record.Mesh_ID)&&!e.meshes.length).map(e => e.record.Mesh_ID);

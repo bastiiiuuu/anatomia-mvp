@@ -100,6 +100,8 @@ Medición reproducible: Chrome headless con SwiftShader, viewport 768×1024, ent
 
 El rendimiento real al girar el cuerpo completo aún depende de la GPU, temperatura y navegador: quedan 1,8 millones de triángulos en esa vista. Las secciones y el aislamiento reducen la geometría visible sin sacrificar detalle. Se requiere una medición en hardware físico para certificar el objetivo de 60 FPS. El diagnóstico disponible exclusivamente en `?debug=1` registra frames, resolución, lotes, tiempos de selección y picking para esa siguiente auditoría.
 
+La revisión posterior de memoria comparte el buffer maestro de índices entre las pasadas y usa rangos contiguos para selecciones sencillas. Los buffers de reordenación se crean solamente para filtros que los necesitan. En la carga muscular inicial, esto reduce los arrays de índices preparados de 46.529.640 a 23.264.820 bytes, manteniendo los 1.819.008 triángulos visibles y 14 llamadas de dibujo. Las cajas de cada pasada se recalculan a partir de las piezas activas, para que el frustum culling descarte la geometría que ya no pertenece al filtro. Las descargas GLB son cancelables y verifican el tamaño del catálogo; las consultas JSON y Wikipedia tienen tiempo límite.
+
 El catálogo procedural previo y los scripts Blender permanecen como material de desarrollo y pruebas, fuera de la escena activa. No se usa un fallback silencioso al modelo procedural si falla un GLB.
 
 ## Fichas y Wikipedia

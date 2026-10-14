@@ -154,6 +154,16 @@ const { chromium } = process.env.PLAYWRIGHT_MODULE ? require(process.env.PLAYWRI
         if(actual.distanceTo(expected)>1e-4)return false;
       }return true;
     });assert.ok(batching,'Baked world-space geometry preserves original node transforms, including mirrored anatomy');
+    const masks=await page.evaluate(()=>{
+      const a=window.atlasDebug;
+      for(const batch of a.batches.batches)for(const [object,ghost] of [[batch.opaque,false],[batch.ghost,true]]){
+        const members=batch.members.filter(m=>m.mesh.visible&&m.mesh.userData.anatomyId!==a.state.selected&&(m.mesh.userData.visualMode==='ghost')===ghost);
+        const expected=members.reduce((n,m)=>n+m.count,0);
+        if(!object){if(expected)return false;continue;}
+        if(!!expected!==object.visible)return false;
+        if(object.visible&&object.geometry.groups.reduce((n,g)=>n+g.count,0)!==expected)return false;
+      }return true;
+    });assert.ok(masks,'Sparse index ranges render precisely the visible opaque and ghost triangle sets');
     if(process.env.ATLAS_SCREENSHOT)await page.screenshot({path:process.env.ATLAS_SCREENSHOT,fullPage:false});
     console.log('PASS: real GLB/Draco, 1373 bindings, search, Wikipedia, camera, regions, raycasts, automatic muscle isolation on search/list/click, x-ray, hiding, filters and mobile.');
   }finally{await browser.close();}

@@ -44,16 +44,16 @@ export class AnatomyBatches {
       }
       const IndexArray=result.index.constructor,originalIndex=result.index;
       const members=meshes.map((mesh,i)=>({...result.ranges[i],mesh}));
-      const index=new THREE.BufferAttribute(new IndexArray(originalIndex.length),1).setUsage(THREE.DynamicDrawUsage);
+      const index=new THREE.BufferAttribute(originalIndex,1);
       geometry.setIndex(index);geometry.setDrawRange(0,0);
       geometry.boundingBox=new THREE.Box3(new THREE.Vector3(...result.min),new THREE.Vector3(...result.max));
       geometry.boundingSphere=geometry.boundingBox.getBoundingSphere(new THREE.Sphere());
-      const opaque=new THREE.Mesh(geometry,meshes[0].userData.sourceMaterials[0]);
+      const opaque=new THREE.Mesh(geometry,[meshes[0].userData.sourceMaterials[0]]);
       opaque.name='Lote anatómico';opaque.matrixAutoUpdate=false;opaque.visible=false;
-      const batch={geometry,opaque,ghost:null,sourceMaterial:meshes[0].userData.sourceMaterials[0],originalIndex,members,IndexArray,signature:null};
+      const batch={geometry,opaque,ghost:null,sourceMaterial:meshes[0].userData.sourceMaterials[0],originalIndex,originalAttribute:index,opaqueIndex:null,ghostIndex:null,members,IndexArray,signature:null};
       this.batches.push(batch);this.scene.add(opaque);
       for(const mesh of meshes)mesh.userData.batchAssigned=true;
-      this.stats.indexBytes+=originalIndex.byteLength+index.array.byteLength;
+      this.stats.indexBytes+=originalIndex.byteLength;
       await nextTask();
     }
     this.stats.batches=this.batches.length;
@@ -80,10 +80,10 @@ export class AnatomyBatches {
     if(batch.ghost)return batch.ghost;
     const geometry=new THREE.BufferGeometry();
     for(const [key,a] of Object.entries(batch.geometry.attributes))geometry.setAttribute(key,a);
-    geometry.boundingBox=batch.geometry.boundingBox;geometry.boundingSphere=batch.geometry.boundingSphere;
-    geometry.setIndex(new THREE.BufferAttribute(new batch.IndexArray(batch.originalIndex.length),1).setUsage(THREE.DynamicDrawUsage));
+    geometry.boundingBox=batch.geometry.boundingBox.clone();geometry.boundingSphere=batch.geometry.boundingSphere.clone();
+    geometry.setIndex(batch.originalAttribute);
     geometry.setDrawRange(0,0);
-    const ghost=new THREE.Mesh(geometry,this.materials.get(batch.sourceMaterial,'ghost'));
+    const ghost=new THREE.Mesh(geometry,[this.materials.get(batch.sourceMaterial,'ghost')]);
     ghost.matrixAutoUpdate=false;ghost.visible=false;ghost.renderOrder=-1;
     batch.ghost=ghost;this.scene.add(ghost);return ghost;
   }
@@ -114,26 +114,42 @@ export class AnatomyBatches {
       const signature=visible.map(m=>`${m.start}:${m.mesh.userData.visualMode}`).join(',');
       if(signature===batch.signature)continue;
       batch.signature=signature;
-      let opaqueCount=0,ghostCount=0;
-      for(const member of visible)if(member.mesh.userData.visualMode==='ghost')ghostCount+=member.count;else opaqueCount+=member.count;
-      const opaqueIndex=batch.geometry.index;
-      let opaqueOffset=0,ghostOffset=0;let ghostIndex=null;
-      if(ghostCount) {
-        const ghost=this.ghostFor(batch);
-        ghostIndex=ghost.geometry.index;
-      }
-      for(const member of visible) {
-        const range=batch.originalIndex.subarray(member.start,member.start+member.count);
-        if(member.mesh.userData.visualMode==='ghost'){ghostIndex.array.set(range,ghostOffset);ghostOffset+=member.count;}
-        else{opaqueIndex.array.set(range,opaqueOffset);opaqueOffset+=member.count;}
-      }
-      opaqueIndex.clearUpdateRanges();if(opaqueCount)opaqueIndex.addUpdateRange(0,opaqueCount);opaqueIndex.needsUpdate=true;
-      batch.geometry.setDrawRange(0,opaqueCount);batch.opaque.visible=opaqueCount>0;
-      if(batch.ghost){
-        if(ghostIndex){ghostIndex.clearUpdateRanges();ghostIndex.addUpdateRange(0,ghostCount);ghostIndex.needsUpdate=true;}
-        batch.ghost.geometry.setDrawRange(0,ghostCount);batch.ghost.visible=ghostCount>0;
-      }
+      const opaque=visible.filter(member=>member.mesh.userData.visualMode!=='ghost');
+      const ghost=visible.filter(member=>member.mesh.userData.visualMode==='ghost');
+      this.updatePass(batch,batch.opaque,opaque,'opaqueIndex');
+      if(ghost.length)this.updatePass(batch,this.ghostFor(batch),ghost,'ghostIndex');
+      else if(batch.ghost)batch.ghost.visible=false;
+
     }
+  }
+
+  updatePass(batch,object,members,indexKey) {
+    object.visible=members.length>0;
+    if(!object.visible)return;
+    const geometry=object.geometry,runs=[];
+    geometry.clearGroups();geometry.boundingBox.makeEmpty();
+    for(const member of members) {
+      geometry.boundingBox.union(member.mesh.userData.worldBox);
+      const last=runs[runs.length-1];
+      if(last&&last.start+last.count===member.start)last.count+=member.count;
+      else runs.push({start:member.start,count:member.count});
+    }
+    geometry.boundingBox.getBoundingSphere(geometry.boundingSphere);
+    // Most selections leave one or two contiguous ranges: reuse the exact master
+    // index buffer, avoiding a second full copy and any index upload on each tap.
+    if(runs.length<=3) {
+      geometry.setIndex(batch.originalAttribute);geometry.setDrawRange(0,Infinity);
+      for(const run of runs)geometry.addGroup(run.start,run.count,0);
+      return;
+    }
+    if(!batch[indexKey]) {
+      batch[indexKey]=new THREE.BufferAttribute(new batch.IndexArray(batch.originalIndex.length),1).setUsage(THREE.DynamicDrawUsage);
+      this.stats.indexBytes+=batch[indexKey].array.byteLength;
+    }
+    const index=batch[indexKey];let offset=0;
+    for(const run of runs){index.array.set(batch.originalIndex.subarray(run.start,run.start+run.count),offset);offset+=run.count;}
+    index.clearUpdateRanges();index.addUpdateRange(0,offset);index.needsUpdate=true;
+    geometry.setIndex(index);geometry.addGroup(0,offset,0);geometry.setDrawRange(0,offset);
   }
 
   dispose() {
