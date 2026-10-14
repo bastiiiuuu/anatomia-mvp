@@ -173,30 +173,44 @@ function updateActivity() {
 
 function pickStructure() {
   const start=performance.now();diagnostics.picks++;diagnostics.testedMeshes=0;
+  const preferSelected=state.isolated&&$('isolate-mode').value==='xray';
+  // Isolation gives the selected piece priority over its ghost context. Test
+  // that exact geometry first; a hit makes the surrounding triangle tests moot.
+  if(preferSelected) {
+    const entry=state.entries.get(state.selected);
+    if(entry&&raycaster.ray.intersectBox(entry.box,boxHit)) {
+      let selected=null;
+      for(const mesh of entry.meshes)if(mesh.visible) {
+        diagnostics.testedMeshes++;
+        const hits=[];mesh.raycast(raycaster,hits);
+        for(const hit of hits)if(!selected||hit.distance<selected.distance)selected=hit;
+      }
+      if(selected){diagnostics.pickMs=performance.now()-start;return selected;}
+    }
+  }
   const candidates=[];
   for(const entry of visibleEntries) {
+    if(preferSelected&&entry.record.Mesh_ID===state.selected)continue;
     if(!raycaster.ray.intersectBox(entry.box,boxHit))continue;
     candidates.push({entry,distance:entry.box.containsPoint(raycaster.ray.origin)?0:raycaster.ray.origin.distanceTo(boxHit)});
   }
   candidates.sort((a,b)=>a.distance-b.distance);
-  const preferSelected=state.isolated&&$('isolate-mode').value==='xray';
   const preferOpaque=state.xray||state.sectionContext==='ghost'||hasGhostContext;
-  let best=null,opaque=null,selected=null;
+  let best=null,opaque=null;
   for(const {entry,distance} of candidates) {
-    const limit=preferSelected?(selected?.distance??Infinity):preferOpaque?(opaque?.distance??Infinity):(best?.distance??Infinity);
-    if(distance>limit)continue;
+    const limit=preferOpaque?(opaque?.distance??Infinity):(best?.distance??Infinity);
+    if(distance>limit)break;
     for(const mesh of entry.meshes)if(mesh.visible) {
       diagnostics.testedMeshes++;
       const hits=[];mesh.raycast(raycaster,hits);
       for(const hit of hits) {
         if(!best||hit.distance<best.distance)best=hit;
         if(mesh.userData.visualMode!=='ghost'&&(!opaque||hit.distance<opaque.distance))opaque=hit;
-        if(entry.record.Mesh_ID===state.selected&&(!selected||hit.distance<selected.distance))selected=hit;
       }
     }
   }
   diagnostics.pickMs=performance.now()-start;
-  return (preferSelected&&selected)||(preferOpaque&&opaque)||best;
+  return (preferOpaque&&opaque)||best;
 }
 
 function disposeViewer() {

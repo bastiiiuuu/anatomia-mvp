@@ -84,6 +84,7 @@ El cliente descarga y decodifica inicialmente solo `muscular.glb`. Las otras cap
 - `static/performance.js` administra un único rAF bajo demanda; duerme tras el movimiento y pausa al ocultar la pestaña o salir el visor de pantalla. La resolución automática se adapta con muestras de interacción, sin confundir el reposo con un bajo FPS.
 - Al detener la cámara, recupera la nitidez automática en el último fotograma y conserva la resolución aprendida para el siguiente gesto. No añade un bucle en reposo; la recuperación durante el movimiento admite también pantallas de 60 Hz. Los buscadores táctiles usan texto de 16 px para evitar el zoom de enfoque de algunos navegadores móviles.
 - El raycasting descarta primero las cajas que no toca el rayo y poda candidatos más lejanos que la intersección relevante. Un gesto con dos dedos nunca termina como selección accidental.
+- En aislamiento con contexto transparente, prueba primero los triángulos de la pieza seleccionada: si hay impacto, no recorre el cuerpo fantasma. La prioridad visual permanece igual y un toque fuera de esa pieza conserva la búsqueda normal.
 - Los listeners personalizados de puntero son pasivos. Las etiquetas se actualizan solo al dibujar, reutilizando vectores y medidas. La lista delega eventos y limita el DOM a 40 filas. En pantallas táctiles se desactivan MSAA y desenfoques de paneles; el modo de desarrollo no hace polling.
 - La salida del visor cancela RAF, fetches, temporizadores, observers y listeners; termina el worker y libera geometrías, materiales, texturas y contexto WebGL. El ciclo bfcache pausa y reanuda conservando el estudio.
 
@@ -141,6 +142,7 @@ $env:BROWSER_EXECUTABLE = 'C:\Program Files\Google\Chrome\Application\chrome.exe
 node tools/browser-smoke.cjs
 node tools/tablet-smoke.cjs
 node tools/performance-smoke.cjs
+node tools/picking-smoke.cjs
 node tools/resolution-smoke.cjs
 node tools/static-smoke.cjs
 ```
