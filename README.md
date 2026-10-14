@@ -171,3 +171,21 @@ Los controles superiores permiten plegar ambos paneles en escritorio. El botón 
 La ficha tiene un estado de carga y un botón para reintentar una consulta fallida sin perder la selección. La preparación de capas adicionales muestra progreso dentro del visor. Las animaciones de paneles son breves; los efectos de desenfoque se desactivan en pantallas táctiles y se respeta la preferencia de movimiento reducido.
 
 `tools/studio-smoke.cjs` comprueba cámara orbital, paneles, concentración, teclado, carga/error/reintento de fichas, materiales originales, teléfono y movimiento reducido. `tools/label-smoke.cjs` comprueba el encuadre y la colocación de etiquetas sin navegador. No se han agregado modelos, HDRI ni dependencias.
+
+## Panel privado de tráfico
+
+El panel se abre en **http://127.0.0.1:8011/admin** en este PC. Registra visitas, IP de conexión, actividad reciente, tipo de dispositivo y dominio de procedencia. Una IP no equivale a una persona. El registro empieza al publicar el script: GitHub Pages no proporciona las IP de visitas anteriores.
+
+Ejecuta `./start-analytics.ps1` para iniciar el servicio separado y el túnel HTTPS con la instalación de ngrok ya configurada. El atlas sigue publicado en GitHub Pages, mientras `backend/analytics.py` recibe las visitas. **El PC, el servicio y el túnel deben permanecer encendidos para recibir datos.** La página 3D sigue funcionando si el colector está desconectado. Para un servicio permanente, despliega este mismo backend en un servidor HTTPS siempre encendido y cambia `static/analytics-config.json`; no pongas secretos en ese archivo.
+
+El panel remoto requiere la clave de `data/private/admin-token.txt`, generada localmente. También puedes configurar `ATLAS_ADMIN_TOKEN` (32 caracteres o más). La sesión usa cookie HttpOnly/Secure/SameSite=Strict, caduca a las 8 horas y limita intentos de acceso. Solo el acceso directo a loopback con host local y sin cabeceras de proxy permite entrar automáticamente. Las IP y la clave están excluidas de Git y del artefacto público. No compartas el contenido de la carpeta `data/private`.
+
+El proxy debe usar `tools/analytics-policy.json`: elimina cualquier `x-atlas-client-ip` aportada por el visitante y escribe la IP de la conexión. Se usa la [acción oficial de cabeceras de ngrok](https://ngrok.com/docs/gateway/traffic-policy/actions/add-headers). El servidor se inicia con `--no-proxy-headers` y solo confía en esa cabecera desde loopback con `ATLAS_ANALYTICS_TRUST_PROXY=1`. Si usas otro proxy, configura su identidad verificada antes de activar esta confianza.
+
+El colector acepta únicamente solicitudes del origen del atlas y la ruta `/anatomia-mvp/`; las consultas administrativas nunca habilitan CORS. El registro conserva siete días y hasta 100.000 cargas de página, no recopila búsquedas ni piezas seleccionadas y permite excluirse desde «Privacidad y estadísticas». También respeta GPC y Do Not Track. Los pulsos se detienen al ocultar la pestaña y no usan el ciclo de renderizado. El servicio ignora solicitudes de diagnóstico `?debug=1`.
+
+`tools/analytics-smoke.cjs` valida el panel local, el envío real por HTTPS/CORS y la exclusión persistente. Elimina solo las visitas de prueba que él mismo genera. `tests/test_analytics.py` valida sesiones, aislamiento de datos, límites, retención e identidad del proxy.
+
+## Corrección del parpadeo al girar
+
+El cambio adaptativo de DPR redimensiona y borra el drawing buffer de WebGL. Ahora se decide **antes** de dibujar el frame, para que no se presente un canvas vacío entre giros. `tools/flicker-smoke.cjs` fuerza cambios de resolución durante una rotación y comprueba que cada redimensionado termina con un dibujo antes de presentar la imagen. No se desactiva la adaptación de resolución ni se añade un segundo render por frame.

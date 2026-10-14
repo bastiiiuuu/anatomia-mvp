@@ -39,15 +39,15 @@ def export(root=ROOT):
         asset["url"]=path+"?v="+version
     write_json(root/"site-data/scene.json",{"model":model,"structures":compact})
     html=(root/"static/index.html").read_text(encoding="utf-8")
-    modules=["label-layout.js","camera-motion.js","studio-ui.js","viewer.js","data-source.js","materials.js","performance.js","batch-renderer.js","batch-worker.js","dev.js"]
-    source=b"".join((root/"static"/name).read_bytes().replace(b"\r\n",b"\n") for name in [*modules,"styles.css","studio.css"])
+    modules=["analytics.js","label-layout.js","camera-motion.js","studio-ui.js","viewer.js","data-source.js","materials.js","performance.js","batch-renderer.js","batch-worker.js","dev.js"]
+    source=b"".join((root/"static"/name).read_bytes().replace(b"\r\n",b"\n") for name in [*modules,"styles.css","studio.css","analytics-config.json"])
     fingerprint=hashlib.sha256((root/"site-data/scene.json").read_bytes()+html.replace("\r\n","\n").encode()+source).hexdigest()[:16]
     html=html.replace('<html lang="es">',f'<html lang="es" data-runtime="static" data-build="{fingerprint}">')
     match=re.search(r'<script type="importmap">\s*(.*?)\s*</script>',html,re.S)
     imports=json.loads(match[1])
     imports["imports"].update({"./static/"+name:"./static/"+name+"?v="+fingerprint for name in modules})
     html=html[:match.start(1)]+json.dumps(imports,separators=(",",":"))+html[match.end(1):]
-    for path in ("static/viewer.js","static/dev.js","static/styles.css","static/studio.css"):
+    for path in ("static/viewer.js","static/dev.js","static/analytics.js","static/styles.css","static/studio.css"):
         html=html.replace('"./'+path+'"','"./'+path+'?v='+fingerprint+'"')
     (root/"index.html").write_text(html,encoding="utf-8")
     (root/".nojekyll").write_text("",encoding="utf-8")

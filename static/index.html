@@ -104,8 +104,10 @@
   </main>
   <nav class="tablet-dock" aria-label="Paneles de estudio"><button id="toggle-explorer" data-panel="explorer" aria-expanded="false" aria-controls="explorer-panel">☷ <span>Explorador</span></button><button id="tablet-section">◎ <span>Ver sección</span></button><button id="toggle-study" data-panel="study" aria-expanded="false" aria-controls="study-panel">≡ <span>Ficha</span></button></nav>
   <section class="encyclopedia" aria-label="Ficha enciclopédica inferior"><div><span class="eyebrow">WIKIPEDIA EN ESPAÑOL</span><h2 id="wiki-title">Texto enciclopédico de la estructura</h2><p id="wiki-status" role="status" aria-live="polite">Selecciona una pieza para consultar su resumen. Los textos se mantienen en memoria.</p></div><div><p id="wiki-extract"></p><a id="wiki-link" target="_blank" rel="noopener noreferrer" hidden>Leer artículo y autores ↗</a><small id="wiki-license"></small></div></section>
-  <footer class="footer"><span><i></i> <span id="status" role="status" aria-live="polite">Iniciando visor</span></span><span>ATLAS / ESTUDIO 3D <b>·</b> Z-Anatomy · CC BY-SA</span></footer>
+  <details class="traffic-privacy"><summary>Privacidad y estadísticas</summary><p>Al visitar el atlas público se registra la IP de conexión, la fecha, el tipo de dispositivo y el dominio de procedencia durante 7 días. No se envían búsquedas ni músculos seleccionados. El registro respeta la señal de privacidad de tu navegador.</p><label><input id="traffic-opt-out" type="checkbox"> No registrar mis visitas</label></details>
+  <footer class="footer"><span><i></i> <span id="status" role="status" aria-live="polite">Iniciando visor</span></span><a id="traffic-admin" target="_blank" rel="noopener noreferrer nofollow" hidden>Administración ↗</a><span>ATLAS / ESTUDIO 3D <b>·</b> Z-Anatomy · CC BY-SA</span></footer>
   <script type="module" src="./static/viewer.js"></script>
   <script type="module" src="./static/dev.js"></script>
+  <script type="module" src="./static/analytics.js"></script>
 </body>
 </html>

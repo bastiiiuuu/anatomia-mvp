@@ -4,4 +4,9 @@ __pycache__/
 data/wiki-cache/
 # The three licensed models must be versioned for the public GitHub Pages edition.
 artifacts/
+data/private/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+*.env
 _site/

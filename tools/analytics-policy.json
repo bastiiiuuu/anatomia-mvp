@@ -1,0 +1,8 @@
+{
+  "on_http_request": [{
+    "actions": [
+      {"type":"remove-headers","config":{"headers":["x-atlas-client-ip"]}},
+      {"type":"add-headers","config":{"headers":{"x-atlas-client-ip":"${conn.client_ip}"}}}
+    ]
+  }]
+}

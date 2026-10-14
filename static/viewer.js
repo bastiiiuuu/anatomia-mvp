@@ -782,10 +782,13 @@ function render(now) {
     const orientation=Math.abs(cameraDirection.y)>.75?(cameraDirection.y>0?'SUPERIOR':'INFERIOR'):
       Math.abs(cameraDirection.x)>.75?'LATERAL':cameraDirection.z>=0?'ANTERIOR':'POSTERIOR';
     if(orientation!==lastOrientation){$('view-orientation').textContent=orientation;lastOrientation=orientation;}
+    // DPR changes resize (and clear) the drawing buffer. Always do this BEFORE
+    // drawing, otherwise adaptive quality presents a blank frame during orbit.
+    resolution.sample(now,resolution.stats.renderMs,active);
     const start=performance.now();
     renderer.render(scene, camera);
     frames.stats.frames++;
-    resolution.sample(now,performance.now()-start,active);
+    resolution.stats.renderMs=performance.now()-start;
     state.needsRender = false;
   }
   return !!state.flight || controlsChanged;
@@ -988,7 +991,7 @@ async function start() {
 if (new URLSearchParams(location.search).has('debug')) {
   window.atlasDebug = { state, get camera() { return camera; }, get controls() { return controls; },
     select: selectStructure, get entries() { return state.entries; }, get renderer() { return renderer; },
-    get scene() { return scene; }, get batches(){return batches;}, renderNow: () => renderer.render(scene, camera), clear:()=>{clearSelection();applyAppearance();},
+    get scene() { return scene; }, get resolution() { return resolution; }, get batches(){return batches;}, renderNow: () => renderer.render(scene, camera), clear:()=>{clearSelection();applyAppearance();},
     dispose:disposeViewer, performance:{snapshot:()=>({ ...diagnostics, frames:{...frames?.stats}, resolution:{...resolution?.stats,ratio:resolution?.ratio},
       batches:{...batches?.stats}, materials:materials.sources.size+materials.variants.size, loadedAssets:[...loadedAssets], rowCount:document.getElementById('structure-list')?.childElementCount, visibleMeshes:visibleEntries.reduce((n,e)=>n+e.meshes.length,0) })} };
 }
