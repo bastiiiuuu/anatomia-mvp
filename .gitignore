@@ -2,5 +2,6 @@
 __pycache__/
 *.pyc
 data/wiki-cache/
-static/models/*.glb
+# The three licensed models must be versioned for the public GitHub Pages edition.
 artifacts/
+_site/

@@ -1,8 +1,9 @@
 // Desktop live editing only. Tablets never poll the development server while studying.
 const mobile=matchMedia('(pointer: coarse)').matches||navigator.maxTouchPoints>0;
+const staticMode=document.documentElement.dataset.runtime==='static';
 let version,timer,disposed=false;
 async function check(){
-  if(disposed||document.hidden||mobile)return;
+  if(disposed||document.hidden||mobile||staticMode)return;
   try{
     const response=await fetch('/api/dev',{cache:'no-store'});
     if(response.ok){

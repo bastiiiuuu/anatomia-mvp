@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="es" data-runtime="static" data-build="e8c7f6b3ba6cad8c">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b111b">
+  <title>Atlas — Anatomía 3D</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='52' x='5' font-size='58' fill='%2374e2c0'%3E✳%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./static/styles.css?v=e8c7f6b3ba6cad8c">
+  <script type="importmap">
+  {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/","./static/viewer.js?v=e8c7f6b3ba6cad8c":"./static/viewer.js?v=e8c7f6b3ba6cad8c","./static/data-source.js":"./static/data-source.js?v=e8c7f6b3ba6cad8c","./static/materials.js":"./static/materials.js?v=e8c7f6b3ba6cad8c","./static/performance.js":"./static/performance.js?v=e8c7f6b3ba6cad8c","./static/batch-renderer.js":"./static/batch-renderer.js?v=e8c7f6b3ba6cad8c","./static/batch-worker.js":"./static/batch-worker.js?v=e8c7f6b3ba6cad8c","./static/dev.js?v=e8c7f6b3ba6cad8c":"./static/dev.js?v=e8c7f6b3ba6cad8c"}}
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="Atlas, inicio"><span class="brand-icon">✳</span><span>atlas<span class="brand-dot">.</span></span><small>ANATOMÍA 3D</small></a>
+    <div class="search-wrap">
+      <span class="search-icon" aria-hidden="true">⌕</span>
+      <input id="search" type="search" placeholder="Busca… Clavícula, C4, Bíceps, Calcáneo" autocomplete="off" aria-label="Buscar estructuras" aria-controls="results" aria-expanded="false">
+      <kbd>/</kbd>
+      <div id="results" class="results" hidden role="region" aria-label="Resultados de búsqueda"></div>
+    </div>
+    <span class="free-badge"><i></i> Acceso libre</span>
+  </header>
+  <main class="workspace">
+    <aside class="layers-panel" id="explorer-panel" aria-label="Capas anatómicas">
+      <div class="panel-top explorer-top"><div class="eyebrow">EXPLORADOR</div><button class="close-panel" data-close-panel aria-label="Cerrar explorador">×</button></div>
+      <h1>El cuerpo.<br><span>En detalle.</span></h1>
+      <p class="intro">Un espacio para explorar y comprender.</p>
+      <div id="muscle-study" class="muscle-study">
+        <label class="section-label" for="muscle-section">ESTUDIO POR SECCIONES</label>
+        <select id="muscle-section" aria-label="Sección muscular"><option value="all">Todos los músculos</option></select>
+        <select id="muscle-group" aria-label="Grupo o compartimento muscular"><option value="all">Todos los grupos</option></select>
+        <div class="side-selector" role="group" aria-label="Lado anatómico del paciente"><button data-side="both" aria-pressed="true">Ambos</button><button data-side="L" aria-pressed="false">Izquierdo</button><button data-side="R" aria-pressed="false">Derecho</button></div>
+        <label class="context-control" for="section-context">Resto del cuerpo<select id="section-context"><option value="hide">Ocultar</option><option value="ghost">Transparente</option></select></label>
+        <button id="restore-section" class="restore-section" hidden>Restaurar piezas ocultas de la sección ↺</button>
+        <p id="section-summary" class="section-summary" role="status">Elige una sección para ampliar su anatomía.</p>
+      </div>
+      <details id="layer-options" class="layer-options"><summary class="section-label">CAPAS ANATÓMICAS <span id="layer-count">04</span></summary>
+      <div class="layers">
+        <label class="layer"><span class="layer-symbol bone">◈</span><span>Sistema óseo<small>Huesos</small></span><input type="checkbox" data-layer="oseo" checked><span class="switch"></span></label>
+        <label class="layer"><span class="layer-symbol ligament">⌁</span><span>Sistema articular<small>Ligamentos, cápsulas y tendones</small></span><input type="checkbox" data-layer="articular"><span class="switch"></span></label>
+        <label class="layer"><span class="layer-symbol muscle">≋</span><span>Sistema muscular<small>Músculos del atlas</small></span><input type="checkbox" data-layer="muscular"><span class="switch"></span></label>
+        <label class="layer"><span class="layer-symbol cartilage">◌</span><span>Cartílagos y discos<small>Costales, meniscos y discos</small></span><input type="checkbox" data-layer="cartilago" checked><span class="switch"></span></label>
+        <label class="layer" id="other-layer" hidden><span class="layer-symbol">◇</span><span>Otros tejidos<small>Fascias, bursas y vainas</small></span><input type="checkbox" data-layer="otro"><span class="switch"></span></label>
+      </div>
+      </details>
+      <div class="section-label">ESTRUCTURAS <span id="structure-count">—</span></div>
+      <input id="structure-filter" type="search" placeholder="Filtrar… C4, costilla, bíceps" aria-label="Filtrar lista de estructuras" autocomplete="off">
+      <label class="auto-isolate"><input id="auto-isolate-muscle" type="checkbox" checked> Aislar músculo al seleccionarlo</label>
+      <div id="filter-count" class="filter-count" role="status"></div>
+      <div id="structure-list" class="structure-list"></div>
+      <nav id="list-pager" class="list-pager" aria-label="Páginas de estructuras" hidden><button id="list-prev" aria-label="Página anterior">‹</button><span id="list-page" role="status"></span><button id="list-next" aria-label="Página siguiente">›</button></nav>
+      <div class="side-bottom"><span class="tiny-cross">+</span><p id="model-note">Z-Anatomy / BodyParts3D · atlas real.</p><a href="./static/models/SOURCES.md" target="_blank">Fuentes y licencias ↗</a></div>
+    </aside>
+    <section class="viewport" id="viewport" aria-label="Visor anatómico tridimensional">
+      <div id="render-stage" class="render-stage"></div>
+      <nav class="atlas-presets" aria-label="Sistemas anatómicos"><button data-preset="bones" aria-pressed="false">Esqueleto</button><button data-preset="muscles" aria-pressed="true">Músculos</button><button data-preset="joints" aria-pressed="false">Articulaciones</button><button data-preset="all" aria-pressed="false">Sistemas</button></nav>
+      <div class="scene-top"><div class="breadcrumbs">ATLAS HUMANO <span>/</span> <span id="scene-title">CUERPO COMPLETO</span></div><span class="scene-badge" id="scene-badge">Z-ANATOMY</span></div>
+      <div class="scene-heading"><label class="sr-only" for="region-select">REGIÓN ANATÓMICA</label><select id="region-select" aria-label="Enfocar región anatómica"><option value="all">Cuerpo Completo</option><option value="head_spine">Cabeza y Columna</option><option value="thorax">Tórax y Abdomen</option><option value="upper">Miembro Superior</option><option value="lower">Pelvis y Miembro Inferior</option></select><p id="model-subtitle">Esqueleto, músculos y articulaciones reales</p></div>
+      <div class="scene-actions"><button id="global-xray" aria-pressed="false">Rayos X / Aislar</button><button id="return-section" hidden>Volver a la sección ↗</button><button id="focus-section">Ampliar sección ◎</button></div>
+      <label class="quality-control" for="render-quality">Nitidez<select id="render-quality"><option value="auto">Automática</option><option value="sharp">Alta</option><option value="fast">Fluida</option></select></label>
+      <div class="orientation"><span>SUPERIOR</span><span>↑</span><span class="axis">Y <b>·</b> Z <b>·</b> X</span></div>
+      <div id="loading" class="loading" role="status"><div class="loading-mark">✳</div><div class="spinner"></div><span>Preparando el atlas…</span><progress id="loading-progress" max="100" value="0" aria-label="Carga del atlas"></progress></div>
+      <svg id="label-connector" class="label-connector" aria-hidden="true" hidden><line/><circle r="3"/></svg>
+      <div id="floating-label" class="floating-label" hidden><i></i><span></span></div>
+      <div class="viewport-bottom"><span id="visible-count">— estructuras visibles</span><span class="gesture-help">Un dedo: girar <b>·</b> Dos dedos: acercar y desplazar</span></div>
+      <div class="view-tools"><button id="reset-view" title="Restaurar vista completa" aria-label="Restaurar vista completa">⟲</button><button id="front-view" title="Vista anterior" aria-label="Vista anterior">A</button><button id="back-view" title="Vista posterior" aria-label="Vista posterior">P</button></div>
+    </section>
+    <aside class="study-panel" id="study-panel" aria-label="Ficha anatómica">
+      <div class="panel-top"><span class="eyebrow">FICHA DE ESTUDIO</span><button class="close-panel" data-close-panel aria-label="Cerrar ficha">×</button></div>
+      <div id="empty-study"><div class="empty-glyph">◎</div><h2>Estudia más cerca.</h2><p>Elige una sección muscular para ampliarla. Selecciona un músculo y explora su ficha, sus inserciones y su función.</p><button id="start-study" class="primary">Explorar el bíceps <span>→</span></button></div>
+      <article id="study" hidden>
+        <div class="study-titlebar"><div class="type-pill" id="study-type"></div><button id="clear-selection" class="clear-selection" title="Quitar selección" aria-label="Quitar selección">×</button></div>
+        <h2 id="study-name"></h2><p id="study-latin" class="latin"></p>
+        <div class="medical-location"><span id="study-system"></span><span id="study-region"></span></div>
+        <div class="study-actions"><button id="focus" class="primary">Enfocar <span>◎</span></button><button id="isolate" aria-pressed="false">Aislar <span>◉</span></button></div>
+        <label class="isolate-mode">Modo de aislamiento<select id="isolate-mode"><option value="xray">Rayos X · 15 %</option><option value="hide">Solo la pieza</option></select></label>
+        <button id="hide-piece" class="hide-piece">Ocultar pieza <span>−</span></button>
+        <div class="medical-section"><h3>01 <span>Descripción anatómica</span></h3><p id="study-description"></p></div>
+        <div class="medical-section"><h3>02 <span>Inserciones / Articulaciones</span></h3><p id="study-insertions"></p></div>
+        <div class="medical-section"><h3>03 <span>Origen / Fijación proximal</span></h3><p id="study-origin"></p></div>
+        <div class="medical-section"><h3>04 <span>Inserción / Fijación distal</span></h3><p id="study-insertion"></p></div>
+        <div class="medical-section"><h3>05 <span>Inervación</span></h3><p id="study-innervation"></p></div>
+        <div class="medical-section"><h3>06 <span>Función</span></h3><p id="study-function"></p></div>
+        <details class="sources"><summary>Fuentes y revisión editorial</summary><p id="study-revision"></p><ul id="study-sources"></ul></details>
+        <div class="mesh-id">MESH ID <code id="study-id"></code></div>
+      </article>
+      <div class="study-footer"><span>✳</span> Aprende explorando.</div>
+    </aside>
+  </main>
+  <nav class="tablet-dock" aria-label="Paneles de estudio"><button id="toggle-explorer" aria-expanded="false" aria-controls="explorer-panel">☷ <span>Explorador</span></button><button id="tablet-section">◎ <span>Ver sección</span></button><button id="toggle-study" aria-expanded="false" aria-controls="study-panel">≡ <span>Ficha</span></button></nav>
+  <section class="encyclopedia" aria-label="Ficha enciclopédica inferior"><div><span class="eyebrow">WIKIPEDIA EN ESPAÑOL</span><h2 id="wiki-title">Texto enciclopédico de la estructura</h2><p id="wiki-status" role="status" aria-live="polite">Selecciona una pieza para consultar su resumen. Los textos se mantienen en memoria.</p></div><div><p id="wiki-extract"></p><a id="wiki-link" target="_blank" rel="noopener noreferrer" hidden>Leer artículo y autores ↗</a><small id="wiki-license"></small></div></section>
+  <footer class="footer"><span><i></i> <span id="status" role="status" aria-live="polite">Iniciando visor</span></span><span>ATLAS / ESTUDIO 3D <b>·</b> Z-Anatomy · CC BY-SA</span></footer>
+  <script type="module" src="./static/viewer.js?v=e8c7f6b3ba6cad8c"></script>
+  <script type="module" src="./static/dev.js?v=e8c7f6b3ba6cad8c"></script>
+</body>
+</html>

@@ -5,10 +5,12 @@ import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { AnatomyMaterials, visualMode } from './materials.js';
 import { AnatomyBatches } from './batch-renderer.js';
 import { DemandFrames, AdaptiveResolution } from './performance.js';
+import { AtlasData } from './data-source.js';
 
 const elements = new Map();
 const $ = id => { if (!elements.has(id)) elements.set(id, document.getElementById(id)); return elements.get(id); };
-const suffix = '';
+const siteBase=new URL('../',import.meta.url);
+const data=new AtlasData({base:siteBase,runtime:document.documentElement.dataset.runtime||'api',json:getJSON,signal:null});
 const viewport = $('viewport');
 const stage = $('render-stage');
 const state = {
@@ -34,6 +36,7 @@ const on = (target, type, callback, options = {}) => {
 };
 const requestRender = () => { state.needsRender = true; frames?.request(); };
 let renderWidth=1, renderHeight=1, labelWidth=0, labelHeight=0, labelDirty=true, lastLabelTransform='';
+let lastConnectorPosition='';
 const cameraDirection = new THREE.Vector3(), labelDirection = new THREE.Vector3(), boxHit = new THREE.Vector3();
 const visibleEntries = [];
 let listMatches=[], listPage=0;
@@ -51,11 +54,40 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function announce(message) { $('status').textContent = message; }
 
-async function getJSON(url, signal) {
+async function getJSON(url, signal, timeout=15000) {
   diagnostics.requests++;
-  const response = await fetch(url, { signal });
-  if (!response.ok) throw new Error(`HTTP ${response.status}: ${url}`);
-  return response.json();
+  const controller=new AbortController(),abort=()=>controller.abort(signal.reason);
+  if(signal?.aborted)abort();else signal?.addEventListener('abort',abort,{once:true});
+  const timer=setTimeout(()=>controller.abort(new DOMException('La consulta tardó demasiado.','TimeoutError')),timeout);
+  try {
+    const response = await fetch(url, {signal:controller.signal});
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${url}`);
+    return await response.json();
+  }finally{clearTimeout(timer);signal?.removeEventListener('abort',abort);}
+}
+
+function cancellable(promise,signal) {
+  if(signal.aborted)return Promise.reject(signal.reason);
+  return new Promise((resolve,reject)=>{
+    const abort=()=>reject(signal.reason||new DOMException('Carga cancelada','AbortError'));
+    signal.addEventListener('abort',abort,{once:true});
+    promise.then(value=>{signal.removeEventListener('abort',abort);resolve(value)},error=>{signal.removeEventListener('abort',abort);reject(error)});
+  });
+}
+
+async function fetchModel(asset,onProgress) {
+  const response=await fetch(data.url(asset.url),{signal:lifecycle.signal});
+  if(!response.ok)throw new Error('No se pudo descargar la capa anatómica (HTTP '+response.status+').');
+  if(!response.body)return response.arrayBuffer();
+  const reader=response.body.getReader(),bytes=new Uint8Array(asset.bytes);let offset=0;
+  try {
+    while(true){const {value,done}=await reader.read();if(done)break;
+      if(offset+value.byteLength>bytes.length)throw new Error('El modelo y el catálogo tienen versiones distintas. Recarga la página.');
+      bytes.set(value,offset);offset+=value.byteLength;onProgress(offset);
+    }
+    if(offset!==asset.bytes)throw new Error('La descarga del modelo quedó incompleta. Recarga la página.');
+    return bytes.buffer;
+  }finally{reader.releaseLock();}
 }
 
 function setupScene() {
@@ -180,7 +212,7 @@ function disposeViewer() {
   materials.dispose();renderer?.renderLists.dispose();renderer?.dispose();renderer?.forceContextLoss();renderer?.domElement.remove();
   root?.traverse(object=>{if(object.geometry&&!geometries.has(object.geometry))object.geometry.dispose();});
   root?.clear();scene?.clear();state.entries.clear();visibleEntries.length=0;studyCache.clear();listMatches=[];regionBoxes.clear();elements.clear();
-  loadedAssets.clear();assetPromises.clear();recordAssets.clear();layerAssets.clear();
+  loadedAssets.clear();assetPromises.clear();recordAssets.clear();layerAssets.clear();data.dispose();
   state.ready=false;state.flight=null;
 }
 
@@ -188,16 +220,18 @@ async function loadModel(assets) {
   const body = root || new THREE.Group(); body.name = 'Z-Anatomy · atlas real';
   const records = new Map(metadata.structures.map(s => [s.Mesh_ID, s]));
   const colors = { oseo: 0xd9c9b1, muscular: 0xb85c66, articular: 0x76c5c9, cartilago: 0x8eaecb, otro: 0x9ca7a5 };
-  const draco = new DRACOLoader(); draco.setDecoderPath('/static/vendor/draco/'); draco.setWorkerLimit(2);
+  const draco = new DRACOLoader(); draco.setDecoderPath(data.url('static/vendor/draco/')); draco.setWorkerLimit(2);
   const loader = new GLTFLoader(); loader.setDRACOLoader(draco);
-  const total = metadata.model.assets.reduce((n, a) => n + a.bytes, 0);
+  const total = assets.reduce((n, a) => n + a.bytes, 0);
   let completed = 0;
   const fallbackMaterials=new Map();
   try {
     for (const asset of assets) {
-      const gltf = await loader.loadAsync(asset.url, event => {
-        $('loading').querySelector('span').textContent = `Cargando atlas real… ${Math.min(99, Math.round((completed + event.loaded) / total * 100))} %`;
+      const buffer=await fetchModel(asset,loaded=>{
+        const progress=Math.min(99,Math.round((completed+loaded)/total*100));
+        $('loading').querySelector('span').textContent=`Cargando atlas real… ${progress} %`;$('loading-progress').value=progress;
       });
+      const gltf=await cancellable(loader.parseAsync(buffer,data.url('static/models/')),lifecycle.signal);
       gltf.scene.name = asset.key;
       gltf.scene.traverse(object => {
         if (!object.isMesh) return;
@@ -381,6 +415,7 @@ function syncStudyUI() {
   document.querySelectorAll('[data-side]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.side === state.side)));
   const entries = [...state.entries.values()].filter(inStudySection);
   const label = metadata.model.muscle_sections[state.section]?.label || 'Cuerpo completo';
+  $('region-select').value=state.muscleStudy?(state.section==='all'?'all':'muscle:'+state.section):state.region;
   $('section-summary').textContent = `${entries.length} piezas musculares · ${label}${state.side === 'both' ? '' : state.side === 'L' ? ' · izquierdo' : ' · derecho'}`;
   $('scene-title').textContent = (state.muscleStudy ? label : metadata.model.regions[state.region]).toUpperCase();
   $('return-section').hidden = !(state.muscleStudy && state.selected && state.isolated);
@@ -406,6 +441,7 @@ function clearSelection() {
   selectionSequence++;
   state.selected = null; state.isolated = false; state.xray = false; state.autoIsolatedMuscle = false;
   $('study').hidden = true; $('empty-study').hidden = false; $('floating-label').hidden = true;
+  $('label-connector').setAttribute('hidden','');
   wikiController?.abort(); wikiSequence++;studyController?.abort();studySequence++;clearTimeout(wikiTimer);
   $('wiki-title').textContent = 'Texto enciclopédico de la estructura';
   $('wiki-status').textContent = 'Selecciona un músculo para consultar su resumen.';
@@ -457,7 +493,7 @@ async function loadWikipedia(record) {
   $('wiki-status').textContent = 'Consultando Wikipedia en español…';
   $('wiki-extract').textContent = ''; $('wiki-license').textContent = ''; $('wiki-link').hidden = true;
   try {
-    const result = await getJSON(`/api/estructuras/${encodeURIComponent(record.Mesh_ID)}/wikipedia`, wikiController.signal);
+    const result = await data.wikipedia(record.Mesh_ID, wikiController.signal);
     if (current !== wikiSequence) return;
     $('wiki-status').textContent = result.status === 'ok'
       ? `Artículo: ${result.title} · ${result.cached ? 'caché en memoria' : 'consulta en línea'}${result.revision ? ' · revisión ' + result.revision : ''}`
@@ -581,7 +617,7 @@ async function loadStudy(id) {
   if(studyCache.has(id))return;
   studyController=new AbortController();
   try {
-    const record=await getJSON(`/api/estructuras/${encodeURIComponent(id)}`,studyController.signal);
+    const record=await data.structure(id,studyController.signal);
     if(sequence!==studySequence||state.selected!==id)return;
     studyCache.set(id,record);if(studyCache.size>128)studyCache.delete(studyCache.keys().next().value);
     showStudy(record);
@@ -651,12 +687,20 @@ function render(now) {
     const show = entry.meshes.some(m => m.visible) && inFront && Math.abs(labelPoint.x) < 1 &&
       Math.abs(labelPoint.y) < 1 && labelPoint.z >= -1 && labelPoint.z <= 1;
     const label = $('floating-label'); label.hidden = !show;
+    const connector=$('label-connector');connector.toggleAttribute('hidden',!show);
     if (show) {
       if(labelDirty){labelWidth=label.offsetWidth;labelHeight=label.offsetHeight;labelDirty=false;}
       const x = Math.round(THREE.MathUtils.clamp((labelPoint.x * .5 + .5) * renderWidth + 18 + stage.offsetLeft, 10, Math.max(10, viewport.clientWidth - labelWidth - 10)));
       const y = Math.round(THREE.MathUtils.clamp((-labelPoint.y * .5 + .5) * renderHeight - 35 + stage.offsetTop, stage.offsetTop, viewport.clientHeight - labelHeight - 10));
       const transform=`translate3d(${x}px, ${y}px, 0)`;
       if(transform!==lastLabelTransform){label.style.transform=transform;lastLabelTransform=transform;}
+      const px=(labelPoint.x*.5+.5)*renderWidth+stage.offsetLeft,py=(-labelPoint.y*.5+.5)*renderHeight+stage.offsetTop;
+      const position=[Math.round(px),Math.round(py),Math.max(x,Math.min(px,x+labelWidth)),Math.max(y,Math.min(py,y+labelHeight))].join(',');
+      if(position!==lastConnectorPosition){
+        const line=connector.querySelector('line'),dot=connector.querySelector('circle');
+        line.setAttribute('x1',px);line.setAttribute('y1',py);line.setAttribute('x2',Math.max(x,Math.min(px,x+labelWidth)));line.setAttribute('y2',Math.max(y,Math.min(py,y+labelHeight)));
+        dot.setAttribute('cx',px);dot.setAttribute('cy',py);lastConnectorPosition=position;
+      }
     }
   }
   if (state.needsRender) {
@@ -672,6 +716,9 @@ function render(now) {
 function wireUI() {
   $('layer-options').open = matchMedia('(min-width: 1201px) and (min-height: 900px)').matches;
   $('muscle-section').append(...Object.entries(metadata.model.muscle_sections).map(([id, section]) => new Option(`${section.label} · ${section.count}`, id)));
+  const muscleRegions=document.createElement('optgroup');muscleRegions.label='Secciones musculares';
+  muscleRegions.append(...Object.entries(metadata.model.muscle_sections).map(([id,section])=>new Option(section.label,'muscle:'+id)));
+  $('region-select').append(muscleRegions);
   updateGroups();
   on($('muscle-section'),'change', () => {
     state.section = $('muscle-section').value; state.group = 'all'; state.region = 'all'; $('region-select').value = 'all';
@@ -712,6 +759,7 @@ function wireUI() {
     if(enabled)try{await ensureLayers({[layer]:true});applyAppearance();}catch{state.layers[layer]=false;input.checked=false;applyAppearance();announce('No se pudo cargar esa capa.');}
   }));
   on($('focus'),'click', () => { if (state.selected) fitBox(state.entries.get(state.selected).box); });
+  on($('clear-selection'),'click',()=>{clearSelection();applyAppearance();});
   on($('isolate'),'click', () => {
     if (!state.selected) return;
     state.autoIsolatedMuscle = false;
@@ -753,6 +801,13 @@ function wireUI() {
     applyAppearance();
   });
   on($('region-select'),'change', () => {
+    const value=$('region-select').value;
+    if(value.startsWith('muscle:')) {
+      clearSelection();state.muscleStudy=true;state.section=value.slice(7);state.group='all';state.region='all';state.side='both';
+      state.layers={oseo:false,muscular:true,articular:false,cartilago:false,otro:false};
+      document.querySelectorAll('[data-layer][type=checkbox]').forEach(input=>{input.checked=state.layers[input.dataset.layer];});
+      updateGroups();focusSection();return;
+    }
     clearSelection();
     state.muscleStudy = false;
     state.region = $('region-select').value; state.selected = null; state.isolated = false;
@@ -829,7 +884,7 @@ function setupSearch() {
 
 async function start() {
   try {
-    metadata = await getJSON('/api/scene' + suffix,lifecycle.signal);
+    data.signal=lifecycle.signal;metadata = await data.scene(lifecycle.signal);
     const byId=new Map(metadata.structures.map(s=>[s.Mesh_ID,s]));
     for(const asset of metadata.model.assets)for(const id of Object.values(asset.node_bindings)) {
       recordAssets.set(id,asset.key);const layer=byId.get(id).capa;
@@ -849,7 +904,7 @@ async function start() {
     state.ready = true; refreshList(); applyAppearance();
     fitBox(allBox, new THREE.Vector3(.08, .02, 1).normalize(), true);
     requestRender();
-    $('loading').hidden = true;
+    $('loading-progress').value=100;$('loading').hidden = true;
     announce(`Atlas real cargado · ${metadata.structures.length} estructuras`);
   } catch (error) {
     console.error(error);

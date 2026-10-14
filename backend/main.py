@@ -44,7 +44,7 @@ async def lifespan(app: FastAPI):
             await app.state.wikipedia.close()
 
 
-app = FastAPI(title="Atlas · Anatomía real 3D", version="0.3.0", lifespan=lifespan)
+app = FastAPI(title="Atlas · Anatomía real 3D", version="0.4.0", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
 
 
@@ -66,7 +66,7 @@ def health(request: Request):
 def dev_version():
     # Opt-in local development only. Browser reloads on saved HTML/CSS/JS changes.
     enabled = os.environ.get("ANATOMY_DEV") == "1"
-    files = [ROOT / "static" / name for name in ("index.html", "styles.css", "viewer.js", "materials.js", "batch-renderer.js", "batch-worker.js", "performance.js", "dev.js")]
+    files = [ROOT / "static" / name for name in ("index.html", "styles.css", "viewer.js", "materials.js", "batch-renderer.js", "batch-worker.js", "performance.js", "data-source.js", "dev.js")]
     version = ":".join(str(p.stat().st_mtime_ns) for p in files) if enabled else None
     return JSONResponse({"enabled": enabled, "version": version}, headers={"Cache-Control": "no-store"})
 

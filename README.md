@@ -1,4 +1,12 @@
+## Visor público
 
+[**Abrir Atlas 3D**](https://bastiiiuuu.github.io/anatomia-mvp/) · gratuito, con estudio muscular por secciones y sin instalar Python.
+
+La edición de GitHub Pages es una aplicación estática completa: `index.html` es su entrada, `site-data/` contiene 29 capítulos de fichas y `static/models/` conserva los tres GLB con sus licencias. Los enlaces respetan `/anatomia-mvp/`; se versionan módulos, modelos y capítulos por contenido para evitar mezclar archivos de dos publicaciones.
+
+`tools/export_pages.py` genera esta edición desde el mismo catálogo del backend. La publicación se reconstruye y despliega automáticamente en cada push a `main` mediante `.github/workflows/pages.yml` (Settings → Pages → GitHub Actions). El workflow verifica también las pruebas Python. La versión pública consulta Wikipedia mediante la API CORS, sin proxies privados ni claves; si falla la red, mantiene la ficha local y el enlace al artículo. La versión local conserva FastAPI y su caché de Wikipedia.
+
+Para generar una copia publicable manualmente: `./.venv/Scripts/python.exe tools/export_pages.py`. No publiques `.venv`, archivos de credenciales ni capturas de QA. El workflow empaqueta únicamente la entrada HTML, `static/`, `site-data/` y `.nojekyll`.
 
 ## Iniciar
 
@@ -128,6 +136,7 @@ $env:BROWSER_EXECUTABLE = 'C:\Program Files\Google\Chrome\Application\chrome.exe
 node tools/browser-smoke.cjs
 node tools/tablet-smoke.cjs
 node tools/performance-smoke.cjs
+node tools/static-smoke.cjs
 ```
 
 La prueba decodifica los tres GLB, comprueba sus 1.373 identidades y verifica selección por raycasting, cámara, regiones, Wikipedia, aislamiento automático muscular por buscador/lista/canvas, restauración, ocultación, filtros y móvil. Las capturas solo se escriben si se proporciona `ATLAS_SCREENSHOT`.
@@ -135,3 +144,5 @@ La prueba decodifica los tres GLB, comprueba sus 1.373 identidades y verifica se
 La prueba de tablet usa pantallas horizontal/vertical, densidad 2 y entrada táctil emulada. Comprueba regiones/grupos/lados, resolución física del canvas, encuadre, paneles, gesto de pinza, selección de una porción palpebral y vuelta a la sección. Actualiza dos capturas en `artifacts/viewer-tablet-landscape.png` y `artifacts/viewer-tablet-portrait.png`.
 
 La prueba de rendimiento añade densidad 3, carga diferida, límite del DOM, llamadas de dibujo, reposo sin RAF, transiciones de color, material original en aislamiento, suspensión/reanudación y liberación de recursos GPU. El test de navegador verifica también posiciones transformadas originales en todos los lotes, incluida la lateralidad reflejada.
+
+La prueba estática utiliza un servidor HTTP sin Python bajo el prefijo `/anatomia-mvp/`, comprueba las tres capas, fichas por capítulos, Wikipedia, color de selección/aislamiento y evita cualquier llamada a `/api/`. `ATLAS_PUBLIC_URL` permite ejecutar la misma prueba contra la publicación real.

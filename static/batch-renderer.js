@@ -11,7 +11,8 @@ export class AnatomyBatches {
   constructor(scene, materials) {
     this.scene = scene; this.materials = materials;
     this.batches = []; this.details = []; this.detailSources = [];
-    this.worker=new Worker(new URL('./batch-worker.js',import.meta.url));this.pending=new Map();this.sequence=0;
+    const workerUrl=new URL('./batch-worker.js',import.meta.url);workerUrl.search=new URL(import.meta.url).search;
+    this.worker=new Worker(workerUrl);this.pending=new Map();this.sequence=0;
     this.worker.onmessage=({data})=>{const pending=this.pending.get(data.id);if(!pending)return;this.pending.delete(data.id);if(data.error)pending.reject(new Error(data.error));else pending.resolve(data)};
     this.worker.onerror=error=>{for(const pending of this.pending.values())pending.reject(new Error(error.message));this.pending.clear()};
     this.stats = { sourceMeshes: 0, batches: 0, vertexBytes: 0, indexBytes: 0 };
