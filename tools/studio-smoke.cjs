@@ -1,0 +1,110 @@
+/* Behavioral QA for the studio shell and camera. Uses the installed browser. */
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+(async () => {
+  const browser = await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true,args:['--enable-unsafe-swiftshader']});
+  const page = await browser.newPage({viewport:{width:1440,height:1000}});
+  const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  await page.route('**/api/dev',r=>r.fulfill({json:{enabled:false,version:null}}));
+  await page.route('**/api/estructuras/*/wikipedia',r=>r.fulfill({json:{status:'unavailable',message:'QA',extract:'',url:'https://es.wikipedia.org',license:''}}));
+  const settled=()=>page.waitForFunction(()=>window.atlasDebug?.state.ready&&!window.atlasDebug.state.flight&&!window.atlasDebug.state.loading,null,{timeout:60000});
+  try {
+    await page.goto('http://127.0.0.1:8000/?debug=1');await settled();
+    const cameraChecks=await page.evaluate(async()=>{
+      const {Vector3}=await import('three');
+      const {createFlight,stepFlight}=await import('./static/camera-motion.js');
+      const center=new Vector3(1,2,3),start=center.clone().add(new Vector3(0,0,10)),end=center.clone().add(new Vector3(0,0,-10));
+      const flight=createFlight(start,center,end,center,0),p=new Vector3(),target=new Vector3();
+      let minimum=Infinity,maximumError=0;
+      for(let i=0;i<=100;i++){
+        stepFlight(flight,flight.duration*i/100,p,target);
+        minimum=Math.min(minimum,p.distanceTo(target));maximumError=Math.max(maximumError,Math.abs(p.distanceTo(target)-10));
+      }
+      const endpoint=p.distanceTo(end);
+      const a=new Vector3(Math.sin(3.1)*10,0,Math.cos(3.1)*10),b=new Vector3(Math.sin(-3.1)*10,0,Math.cos(-3.1)*10);
+      const short=createFlight(a,new Vector3(),b,new Vector3(),0);
+      return {minimum,maximumError,endpoint,shortAngle:Math.abs(short.theta),noOp:createFlight(start,center,start,center,0)};
+    });
+    assert.ok(cameraChecks.minimum>9.999,'Anterior/posterior flight never cuts through the target');
+    assert.ok(cameraChecks.maximumError<1e-10);assert.equal(cameraChecks.endpoint,0);
+    assert.ok(cameraChecks.shortAngle<.1,'Crossing the angular seam takes the short arc');
+    assert.equal(cameraChecks.noOp,null,'Already focused views do not schedule an unnecessary flight');
+    const width=()=>page.locator('#render-stage').evaluate(e=>e.clientWidth);
+    const baselineWidth=await width();
+    await page.locator('.studio-controls [data-panel=explorer]').click();
+    assert.equal(await page.locator('#explorer-panel').isVisible(),false);
+    assert.ok(await width()>baselineWidth+200);
+    await page.locator('#focus-mode').click();
+    assert.equal(await page.locator('#study-panel').isVisible(),false);
+    assert.ok(await width()>1400);
+    await page.locator('.studio-controls [data-panel=study]').click();
+    assert.equal(await page.locator('#study-panel').isVisible(),true);
+    assert.ok(await width()>1400,'Focus sheets do not squeeze the anatomy');
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('#study-panel').isVisible(),false);
+    assert.equal(await page.locator('#focus-mode').getAttribute('aria-pressed'),'true');
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('#focus-mode').getAttribute('aria-pressed'),'false');
+    assert.equal(await page.locator('#explorer-panel').isVisible(),false,'Focus preserves the collapsed preference');
+    assert.equal(await page.locator('#study-panel').isVisible(),true);
+    await page.locator('.studio-controls [data-panel=explorer]').click();
+    await page.locator('#search').fill('f');await page.keyboard.press('f');
+    assert.equal(await page.locator('#focus-mode').getAttribute('aria-pressed'),'false','Typing f does not toggle focus');
+    await page.locator('#search').fill('');await page.locator('#search').blur();
+    const id=await page.evaluate(()=>[...atlasDebug.entries.values()].find(e=>e.record.nombre_original==='Rectus femoris muscle'&&e.record.side==='L').record.Mesh_ID);
+    let release;const delay=new Promise(resolve=>release=resolve);let attempts=0;
+    await page.route('**/api/estructuras/'+id,async route=>{
+      if(attempts++===0){await delay;await route.fulfill({status:503,json:{detail:'QA unavailable'}});}
+      else await route.fulfill({response:await route.fetch()});
+    });
+    await page.evaluate(id=>atlasDebug.select(id,true),id);
+    await page.waitForFunction(()=>!document.getElementById('study-skeleton').hidden);
+    assert.equal(await page.locator('#study-content').isVisible(),false);
+    release();await page.locator('#study-error').waitFor({state:'visible'});
+    assert.equal(await page.locator('#study').getAttribute('aria-busy'),'false');
+    await page.locator('#retry-study').click();
+    await page.locator('#study-content').waitFor({state:'visible'});
+    assert.equal(await page.locator('#study-error').isVisible(),false);
+    assert.ok((await page.locator('#study-description').textContent()).length>20);
+    await settled();
+    const natural=await page.evaluate(id=>atlasDebug.entries.get(id).meshes.every(m=>m.material===m.userData.sourceMaterials[0]),id);
+    assert.ok(natural,'Loading/retrying the study does not modify isolated materials');
+    await page.locator('#lighting-mode').selectOption('relief');
+    assert.ok(await page.evaluate(id=>atlasDebug.entries.get(id).meshes.every(m=>m.material===m.userData.sourceMaterials[0]),id),'Lighting does not replace the original material');
+    await page.locator('#front-view').click();await settled();
+    await page.locator('#back-view').click();await settled();
+    assert.equal(await page.locator('#view-orientation').textContent(),'POSTERIOR');
+    await page.locator('#front-view').click();await settled();
+    assert.equal(await page.locator('#view-orientation').textContent(),'ANTERIOR');
+    await page.locator('#lighting-mode').selectOption('study');
+    await page.locator('#isolate').click();
+    assert.equal(await page.locator('#selection-state').textContent(),'SELECCIÓN · EN CONTEXTO');
+    await page.locator('#isolate').click();
+    assert.equal(await page.locator('#selection-state').textContent(),'AISLADO · COLOR NATURAL');
+    await page.screenshot({path:'artifacts/studio-desktop.png'});
+    await page.locator('#focus-mode').click();await settled();
+    await page.locator('#search').fill('Clavícula');await page.locator('#results').waitFor({state:'visible'});
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('#focus-mode').getAttribute('aria-pressed'),'true','Search Escape closes only search');
+    await page.locator('#search').fill('');await page.locator('#search').blur();
+    await page.screenshot({path:'artifacts/studio-focus.png'});
+    await page.setViewportSize({width:390,height:844});await settled();
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+    assert.ok(await page.locator('#render-stage').evaluate(e=>e.clientHeight)>500,'Focus enlarges the phone canvas');
+    await page.screenshot({path:'artifacts/studio-phone-focus.png'});
+    await page.locator('#focus-mode').click();await settled();
+    await page.screenshot({path:'artifacts/studio-phone.png'});
+    const geometry=await page.evaluate(()=>{
+      const rect=id=>{const r=document.getElementById(id).getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom}};
+      return {stage:rect('render-stage'),region:rect('region-select'),actions:rect('focus-section')};
+    });
+    assert.ok(geometry.stage.top>=geometry.region.bottom,'Region control stays above phone model');
+    await page.emulateMedia({reducedMotion:'reduce'});await settled();
+    await page.locator('#back-view').click();
+    assert.equal(await page.evaluate(()=>atlasDebug.state.flight),null,'Live reduced motion preference goes directly to its destination');
+    assert.deepEqual(errors,[]);
+    fs.writeFileSync('artifacts/studio-qa.json',JSON.stringify({cameraChecks,geometry,errors},null,2));
+    console.log('Studio QA passed: orbital camera, panels/focus, ficha retry, natural materials, responsive layouts, reduced motion.');
+  } finally {await browser.close();}
+})().catch(error=>{console.error(error);process.exit(1)});

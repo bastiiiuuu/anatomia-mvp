@@ -1,5 +1,6 @@
 """Contract of the backend-free edition; models/fiches must keep the same IDs."""
 import json
+import re
 import unittest
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -39,3 +40,10 @@ class StaticPagesTests(unittest.TestCase):
         self.assertEqual(before,(ROOT/"index.html").read_bytes())
         self.assertIn(result["fingerprint"],before.decode())
         self.assertTrue(all('?v=' in s["study_file"] for s in self.scene["structures"]))
+        html=before.decode()
+        imports=json.loads(re.search(r'<script type="importmap">\s*(.*?)\s*</script>',html,re.S)[1])["imports"]
+        local_modules=[value for key,value in imports.items() if key.startswith('./static/')]
+        linked_assets=re.findall(r'(?:src|href)="(\./static/[^"?]+\.(?:css|js)\?[^\"]+)"',html)
+        for asset in [*local_modules,*linked_assets]:
+            self.assertEqual(urlsplit(asset).query,'v='+result["fingerprint"])
+            self.assertTrue((ROOT/urlsplit(asset).path).is_file(),asset)

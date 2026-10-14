@@ -6,6 +6,9 @@ import { AnatomyMaterials, visualMode } from './materials.js';
 import { AnatomyBatches } from './batch-renderer.js';
 import { DemandFrames, AdaptiveResolution } from './performance.js';
 import { AtlasData } from './data-source.js';
+import { createFlight, stepFlight } from './camera-motion.js';
+import { StudioUI } from './studio-ui.js';
+import { placeLabel } from './label-layout.js';
 
 const elements = new Map();
 const $ = id => { if (!elements.has(id)) elements.set(id, document.getElementById(id)); return elements.get(id); };
@@ -24,6 +27,7 @@ const state = {
   loading:false,
 };
 let renderer, scene, camera, controls, root, allBox, overallRadius = 4, metadata;
+let studio, lights, lastOrientation = '';
 let frames, resolution, batches, resizeObserver, intersectionObserver, activeGesture=false, inViewport=true;
 const materials = new AnatomyMaterials();
 const lifecycle = new AbortController();
@@ -51,7 +55,9 @@ let wikiController, wikiSequence = 0;
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 const labelPoint = new THREE.Vector3();
-const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const labelCorner = new THREE.Vector3();
+const labelBounds = {}, projectedAnatomy = {}, labelPin = {}, labelPosition = {};
+const motionPreference = matchMedia('(prefers-reduced-motion: reduce)');
 
 function announce(message) { $('status').textContent = message; }
 
@@ -112,13 +118,22 @@ function setupScene() {
   on(controls, 'start', () => { state.flight = null; activeGesture=true; requestRender(); });
   on(controls, 'end', () => { activeGesture=false; requestRender(); });
   on(controls, 'change', requestRender);
-  scene.add(new THREE.HemisphereLight(0xd7edff, 0x27323e, 1.6));
+  on(motionPreference, 'change', () => {
+    if (motionPreference.matches && state.flight) {
+      const flight=state.flight;
+      stepFlight(flight,flight.start+flight.duration,camera.position,controls.target);
+      state.flight=null;controls.update();requestRender();
+    }
+  });
+  const ambient = new THREE.HemisphereLight(0xd7edff, 0x27323e, 1.6); scene.add(ambient);
   const key = new THREE.DirectionalLight(0xfff4ea, 2.6);
   key.position.set(-5, 8, 7); scene.add(key);
   const fill = new THREE.DirectionalLight(0xa5caff, 1.4);
   fill.position.set(5, 2, -5); scene.add(fill);
   const rim = new THREE.DirectionalLight(0xafe7db, 1.6);
   rim.position.set(2, -3, 4); scene.add(rim);
+  lights = { ambient, key, fill, rim };
+  applyLighting();
   resizeObserver = new ResizeObserver(() => {
     const { width, height } = stage.getBoundingClientRect();
     if(width<1||height<1)return;
@@ -238,14 +253,18 @@ async function loadModel(assets) {
   const draco = new DRACOLoader(); draco.setDecoderPath(data.url('static/vendor/draco/')); draco.setWorkerLimit(2);
   const loader = new GLTFLoader(); loader.setDRACOLoader(draco);
   const total = assets.reduce((n, a) => n + a.bytes, 0);
-  let completed = 0;
+  let completed = 0, lastProgress = -1;
   const fallbackMaterials=new Map();
   try {
     for (const asset of assets) {
       const buffer=await fetchModel(asset,loaded=>{
         const progress=Math.min(99,Math.round((completed+loaded)/total*100));
+        if(progress===lastProgress)return;lastProgress=progress;
         $('loading').querySelector('span').textContent=`Cargando atlas real… ${progress} %`;$('loading-progress').value=progress;
+        $('layer-loading-progress').value=progress;
+        $('layer-loading-text').textContent=`Cargando capa · ${progress} %`;
       });
+      $('layer-loading-text').textContent='Preparando geometría…';
       const gltf=await cancellable(loader.parseAsync(buffer,data.url('static/models/')),lifecycle.signal);
       gltf.scene.name = asset.key;
       gltf.scene.traverse(object => {
@@ -294,9 +313,11 @@ function ensureAsset(key) {
   const asset=metadata.model.assets.find(a=>a.key===key);
   if(!asset)return Promise.reject(new Error('Capa anatómica desconocida'));
   state.loading=true;pendingAssets++;announce('Cargando la capa anatómica…');
+  $('layer-loading').hidden=false;
   const promise=assetPipeline.then(async()=>{
+    $('layer-loading-progress').value=0;$('layer-loading-text').textContent='Cargando capa…';
     await loadModel([asset]);indexModel();await batches.build(state.entries);applyAppearance();
-  }).finally(()=>{pendingAssets--;state.loading=pendingAssets>0;});
+  }).finally(()=>{pendingAssets--;state.loading=pendingAssets>0;$('layer-loading').hidden=!state.loading;});
   assetPromises.set(key,promise);
   assetPipeline=promise.catch(()=>{});
   promise.catch(()=>assetPromises.delete(key));
@@ -481,9 +502,18 @@ function studyDirection(record = null) {
 }
 
 function closePanels() {
-  document.body.classList.remove('explorer-open', 'study-open');
-  $('toggle-explorer').setAttribute('aria-expanded', String(matchMedia('(min-width: 901px) and (max-width: 1200px)').matches && !document.body.classList.contains('explorer-collapsed')));
-  $('toggle-study').setAttribute('aria-expanded', 'false');
+  studio?.closeOverlays();
+}
+
+function applyLighting() {
+  // Change light balance, never the original anatomical material or its textures.
+  const relief = $('lighting-mode').value === 'relief';
+  lights.ambient.intensity = relief ? .75 : 1.35;
+  lights.key.intensity = relief ? 3.1 : 2.6;
+  lights.fill.intensity = relief ? .65 : 1.15;
+  lights.rim.intensity = relief ? 1.2 : 1.1;
+  renderer.toneMappingExposure = relief ? 1 : 1.02;
+  requestRender();
 }
 
 function normalized(text) {
@@ -560,6 +590,10 @@ function applyAppearance() {
   $('global-xray').setAttribute('aria-pressed', String(state.isolated || state.xray));
   $('isolate').firstChild.textContent = state.isolated ? 'Salir de aislamiento ' : 'Aislar ';
   $('hide-piece').firstChild.textContent = state.hidden.has(state.selected) ? 'Mostrar pieza ' : 'Ocultar pieza ';
+  const labelState=state.isolated?'AISLADO · COLOR NATURAL':'SELECCIÓN · EN CONTEXTO';
+  if($('selection-state').textContent!==labelState){$('selection-state').textContent=labelState;labelDirty=true;}
+  $('floating-label').classList.toggle('natural',state.isolated);
+  viewport.dataset.selectionMode=state.isolated?'natural':'context';
   syncStudyUI();
   batches?.update(state.entries,state.selected);
   diagnostics.appearanceMs=performance.now()-start;
@@ -616,6 +650,7 @@ async function selectStructure(id, fly = false) {
 
 
 function showStudy(s) {
+  studyStatus(Object.hasOwn(s,'descripcion')?'ready':'loading');
   const id=s.Mesh_ID, layer=s.capa, pending='Cargando ficha anatómica…';
   const fields = { 'study-name': s.nombre, 'study-latin': s.nombre_oficial_ta2 || s.nombre_original,
     'study-system': s.sistema_label || s.sistema, 'study-region': s.region, 'study-description': s.descripcion||pending,
@@ -638,16 +673,24 @@ function showStudy(s) {
   }));
 }
 
+function studyStatus(status) {
+  $('study').setAttribute('aria-busy',String(status==='loading'));
+  $('study-skeleton').hidden=status!=='loading';
+  $('study-error').hidden=status!=='error';
+  $('study-content').hidden=status!=='ready';
+}
+
 async function loadStudy(id) {
   studyController?.abort();const sequence=++studySequence;
   if(studyCache.has(id))return;
+  studyStatus('loading');
   studyController=new AbortController();
   try {
     const record=await data.structure(id,studyController.signal);
     if(sequence!==studySequence||state.selected!==id)return;
     studyCache.set(id,record);if(studyCache.size>128)studyCache.delete(studyCache.keys().next().value);
     showStudy(record);
-  }catch(error){if(error.name!=='AbortError'&&sequence===studySequence)$('study-description').textContent='No se pudo cargar la ficha. Vuelve a seleccionar la estructura.';}
+  }catch(error){if(error.name!=='AbortError'&&sequence===studySequence&&state.selected===id)studyStatus('error');}
 }
 
 function fitBox(box, direction = null, instant = false) {
@@ -673,11 +716,10 @@ function fitBox(box, direction = null, instant = false) {
   }
   distance *= 1.2;
   const destination = center.clone().addScaledVector(vector, distance);
-  if (instant || reducedMotion) {
+  if (instant || motionPreference.matches) {
     camera.position.copy(destination); controls.target.copy(center); controls.update(); state.flight = null;
   } else {
-    state.flight = { start: performance.now(), from: camera.position.clone(), to: destination,
-      fromTarget: controls.target.clone(), toTarget: center, duration: 900 };
+    state.flight = createFlight(camera.position, controls.target, destination, center, performance.now());
   }
 }
 
@@ -696,12 +738,7 @@ function render(now) {
   if(!renderer||diagnostics.disposed)return false;
   if (state.flight) {
     state.needsRender = true;
-    const f = state.flight;
-    const t = Math.min((now - f.start) / f.duration, 1);
-    const ease = t * t * (3 - 2 * t);
-    camera.position.lerpVectors(f.from, f.to, ease);
-    controls.target.lerpVectors(f.fromTarget, f.toTarget, ease);
-    if (t === 1) state.flight = null;
+    if (stepFlight(state.flight, now, camera.position, controls.target)) state.flight = null;
   }
   const controlsChanged=controls.update();
   const active=!!state.flight||activeGesture||controlsChanged;
@@ -718,8 +755,17 @@ function render(now) {
     const connector=$('label-connector');connector.toggleAttribute('hidden',!show);
     if (show) {
       if(labelDirty){labelWidth=label.offsetWidth;labelHeight=label.offsetHeight;labelDirty=false;}
-      const x = Math.round(THREE.MathUtils.clamp((labelPoint.x * .5 + .5) * renderWidth + 18 + stage.offsetLeft, 10, Math.max(10, viewport.clientWidth - labelWidth - 10)));
-      const y = Math.round(THREE.MathUtils.clamp((-labelPoint.y * .5 + .5) * renderHeight - 35 + stage.offsetTop, stage.offsetTop, viewport.clientHeight - labelHeight - 10));
+      const left=stage.offsetLeft,top=stage.offsetTop;
+      labelPin.x=(labelPoint.x*.5+.5)*renderWidth+left;labelPin.y=(-labelPoint.y*.5+.5)*renderHeight+top;
+      labelBounds.left=left+8;labelBounds.right=left+renderWidth-8;labelBounds.top=top+4;labelBounds.bottom=top+renderHeight-4;
+      projectedAnatomy.left=projectedAnatomy.top=Infinity;projectedAnatomy.right=projectedAnatomy.bottom=-Infinity;
+      for(let i=0;i<8;i++) {
+        labelCorner.set(i&1?entry.box.max.x:entry.box.min.x,i&2?entry.box.max.y:entry.box.min.y,i&4?entry.box.max.z:entry.box.min.z).project(camera);
+        const sx=(labelCorner.x*.5+.5)*renderWidth+left,sy=(-labelCorner.y*.5+.5)*renderHeight+top;
+        projectedAnatomy.left=Math.min(projectedAnatomy.left,sx);projectedAnatomy.right=Math.max(projectedAnatomy.right,sx);
+        projectedAnatomy.top=Math.min(projectedAnatomy.top,sy);projectedAnatomy.bottom=Math.max(projectedAnatomy.bottom,sy);
+      }
+      const {x,y}=placeLabel(labelBounds,projectedAnatomy,labelPin,labelWidth,labelHeight,labelPosition);
       const transform=`translate3d(${x}px, ${y}px, 0)`;
       if(transform!==lastLabelTransform){label.style.transform=transform;lastLabelTransform=transform;}
       const px=(labelPoint.x*.5+.5)*renderWidth+stage.offsetLeft,py=(-labelPoint.y*.5+.5)*renderHeight+stage.offsetTop;
@@ -732,6 +778,10 @@ function render(now) {
     }
   }
   if (state.needsRender) {
+    cameraDirection.copy(camera.position).sub(controls.target).normalize();
+    const orientation=Math.abs(cameraDirection.y)>.75?(cameraDirection.y>0?'SUPERIOR':'INFERIOR'):
+      Math.abs(cameraDirection.x)>.75?'LATERAL':cameraDirection.z>=0?'ANTERIOR':'POSTERIOR';
+    if(orientation!==lastOrientation){$('view-orientation').textContent=orientation;lastOrientation=orientation;}
     const start=performance.now();
     renderer.render(scene, camera);
     frames.stats.frames++;
@@ -767,20 +817,9 @@ function wireUI() {
     const mode = $('render-quality').value;
     resolution.setMode(mode);requestRender();
   });
-  for (const [id, className] of [['toggle-explorer', 'explorer-open'], ['toggle-study', 'study-open']]) {
-    on($(id),'click', () => {
-      if (id === 'toggle-explorer' && matchMedia('(min-width: 901px)').matches) {
-        const collapsed = document.body.classList.toggle('explorer-collapsed');
-        closePanels(); $(id).setAttribute('aria-expanded', String(!collapsed)); return;
-      }
-      const open = !document.body.classList.contains(className); closePanels();
-      document.body.classList.toggle(className, open); $(id).setAttribute('aria-expanded', String(open));
-    });
-  }
-  document.querySelectorAll('[data-close-panel]').forEach(button => on(button,'click', closePanels));
-  on(document,'keydown', event => { if (event.key === 'Escape') closePanels(); });
-  on(matchMedia('(min-width: 901px)'),'change', closePanels);
-  closePanels();
+  studio = new StudioUI(on);
+  on($('lighting-mode'),'change',applyLighting);
+  on($('retry-study'),'click',()=>{if(state.selected)loadStudy(state.selected);});
   document.querySelectorAll('[data-layer][type=checkbox]').forEach(input => on(input,'change', async () => {
     const enabled=input.checked,layer=input.dataset.layer;
     if(enabled&&layer!=='muscular'&&state.autoIsolatedMuscle){state.isolated=false;state.autoIsolatedMuscle=false;}
@@ -895,7 +934,7 @@ function setupSearch() {
     const s=state.entries.get(button.dataset.meshId).record;input.value=s.nombre;close();selectStructure(s.Mesh_ID,true);
   });
   on(input,'keydown',event=>{
-    if(event.key==='Escape'){close();return;}
+    if(event.key==='Escape'){close();event.stopPropagation();return;}
     if(event.key==='ArrowDown'){event.preventDefault();clearTimeout(searchTimer);searchNow();results.querySelector('button')?.focus();}
     if(event.key==='Enter'){event.preventDefault();clearTimeout(searchTimer);searchNow();results.querySelector('button')?.click();}
   });
@@ -903,7 +942,7 @@ function setupSearch() {
     const buttons=[...results.querySelectorAll('button')],i=buttons.indexOf(document.activeElement);
     if(event.key==='ArrowDown'){event.preventDefault();buttons[(i+1)%buttons.length]?.focus();}
     if(event.key==='ArrowUp'){event.preventDefault();if(i<=0)input.focus();else buttons[i-1].focus();}
-    if(event.key==='Escape'){close();input.focus();}
+    if(event.key==='Escape'){close();input.focus();event.stopPropagation();}
   });
   on(document,'pointerdown',event=>{if(!event.target.closest('.search-wrap'))close();},{passive:true});
   on(document,'keydown',event=>{

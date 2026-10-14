@@ -21,7 +21,8 @@ jobs:
         run: git diff --exit-code -- index.html site-data .nojekyll
       - name: Check Web modules
         run: |
-          for module in static/viewer.js static/data-source.js static/materials.js static/performance.js static/batch-renderer.js static/batch-worker.js; do
+          for module in static/viewer.js static/label-layout.js static/camera-motion.js static/studio-ui.js static/data-source.js static/materials.js static/performance.js static/batch-renderer.js static/batch-worker.js; do
             node --input-type=module --check < "$module"
           done
       - run: node tools/resolution-smoke.cjs
+      - run: node tools/label-smoke.cjs

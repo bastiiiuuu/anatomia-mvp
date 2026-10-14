@@ -145,6 +145,8 @@ $env:PLAYWRIGHT_MODULE = 'C:\ruta\a\node_modules\playwright'
 $env:BROWSER_EXECUTABLE = 'C:\Program Files\Google\Chrome\Application\chrome.exe'
 node tools/browser-smoke.cjs
 node tools/tablet-smoke.cjs
+node tools/studio-smoke.cjs
+node tools/label-smoke.cjs
 node tools/performance-smoke.cjs
 node tools/picking-smoke.cjs
 node tools/resolution-smoke.cjs
@@ -159,3 +161,13 @@ La prueba de tablet usa pantallas horizontal/vertical, densidad 2 y entrada tác
 La prueba de rendimiento añade densidad 3, carga diferida, límite del DOM, llamadas de dibujo, reposo sin RAF, transiciones de color, material original en aislamiento, suspensión/reanudación y liberación de recursos GPU. El test de navegador verifica también posiciones transformadas originales en todos los lotes, incluida la lateralidad reflejada.
 
 La prueba estática utiliza un servidor HTTP sin Python bajo el prefijo `/anatomia-mvp/`, comprueba las tres capas, fichas por capítulos, Wikipedia, color de selección/aislamiento y evita cualquier llamada a `/api/`. `ATLAS_PUBLIC_URL` permite ejecutar la misma prueba contra la publicación real.
+
+## Espacio de estudio
+
+Los controles superiores permiten plegar ambos paneles en escritorio. El botón de concentración (o la tecla **F**, fuera de los campos de texto) amplía el visor; los paneles se pueden abrir como hojas sobre el modelo sin reducir su encuadre. **Esc** cierra primero la hoja y después sale de concentración. Las preferencias previas de los paneles se conservan. En tablet y teléfono siguen disponibles los tres controles inferiores.
+
+**Luz: Estudio / Relieve** cambia el balance de las luces sin sustituir el material anatómico original ni añadir texturas, sombras o postprocesado. Las vistas anterior/posterior usan un arco alrededor de la pieza, evitando atravesarla durante el cambio. Las etiquetas buscan espacio alrededor de su caja proyectada, muestran el estado de selección y respetan el color natural durante el aislamiento.
+
+La ficha tiene un estado de carga y un botón para reintentar una consulta fallida sin perder la selección. La preparación de capas adicionales muestra progreso dentro del visor. Las animaciones de paneles son breves; los efectos de desenfoque se desactivan en pantallas táctiles y se respeta la preferencia de movimiento reducido.
+
+`tools/studio-smoke.cjs` comprueba cámara orbital, paneles, concentración, teclado, carga/error/reintento de fichas, materiales originales, teléfono y movimiento reducido. `tools/label-smoke.cjs` comprueba el encuadre y la colocación de etiquetas sin navegador. No se han agregado modelos, HDRI ni dependencias.

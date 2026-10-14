@@ -66,7 +66,7 @@ def health(request: Request):
 def dev_version():
     # Opt-in local development only. Browser reloads on saved HTML/CSS/JS changes.
     enabled = os.environ.get("ANATOMY_DEV") == "1"
-    files = [ROOT / "static" / name for name in ("index.html", "styles.css", "viewer.js", "materials.js", "batch-renderer.js", "batch-worker.js", "performance.js", "data-source.js", "dev.js")]
+    files = [ROOT / "static" / name for name in ("index.html", "styles.css", "studio.css", "label-layout.js","camera-motion.js","studio-ui.js","viewer.js", "materials.js", "batch-renderer.js", "batch-worker.js", "performance.js", "data-source.js", "dev.js")]
     version = ":".join(str(p.stat().st_mtime_ns) for p in files) if enabled else None
     return JSONResponse({"enabled": enabled, "version": version}, headers={"Cache-Control": "no-store"})
 

@@ -7,6 +7,7 @@
   <title>Atlas — Anatomía 3D</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='52' x='5' font-size='58' fill='%2374e2c0'%3E✳%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="./static/styles.css">
+  <link rel="stylesheet" href="./static/studio.css">
   <script type="importmap">
   {"imports": {
     "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
@@ -23,7 +24,11 @@
       <kbd>/</kbd>
       <div id="results" class="results" hidden role="region" aria-label="Resultados de búsqueda"></div>
     </div>
-    <span class="free-badge"><i></i> Acceso libre</span>
+    <div class="studio-controls" role="group" aria-label="Espacio de estudio">
+      <button class="icon-button desktop-panel-toggle" data-panel="explorer" aria-expanded="true" aria-controls="explorer-panel" title="Mostrar u ocultar explorador" aria-label="Mostrar u ocultar explorador"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16M5.5 8h1M5.5 12h1"/></svg></button>
+      <button id="focus-mode" class="icon-button" aria-pressed="false" title="Modo concentración (F)" aria-label="Modo concentración (F)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5"/><circle cx="12" cy="12" r="3"/></svg></button>
+      <button class="icon-button desktop-panel-toggle" data-panel="study" aria-expanded="true" aria-controls="study-panel" title="Mostrar u ocultar ficha" aria-label="Mostrar u ocultar ficha"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M15 4v16M6 8h5M6 12h5M6 16h3"/></svg></button>
+    </div>
   </header>
   <main class="workspace">
     <aside class="layers-panel" id="explorer-panel" aria-label="Capas anatómicas">
@@ -62,11 +67,12 @@
       <div class="scene-top"><div class="breadcrumbs">ATLAS HUMANO <span>/</span> <span id="scene-title">CUERPO COMPLETO</span></div><span class="scene-badge" id="scene-badge">Z-ANATOMY</span></div>
       <div class="scene-heading"><label class="sr-only" for="region-select">REGIÓN ANATÓMICA</label><select id="region-select" aria-label="Enfocar región anatómica"><option value="all">Cuerpo Completo</option><option value="head_spine">Cabeza y Columna</option><option value="thorax">Tórax y Abdomen</option><option value="upper">Miembro Superior</option><option value="lower">Pelvis y Miembro Inferior</option></select><p id="model-subtitle">Esqueleto, músculos y articulaciones reales</p></div>
       <div class="scene-actions"><button id="global-xray" aria-pressed="false">Rayos X / Aislar</button><button id="return-section" hidden>Volver a la sección ↗</button><button id="focus-section">Ampliar sección ◎</button></div>
-      <label class="quality-control" for="render-quality">Nitidez<select id="render-quality"><option value="auto">Automática</option><option value="sharp">Alta</option><option value="fast">Fluida</option></select></label>
-      <div class="orientation"><span>SUPERIOR</span><span>↑</span><span class="axis">Y <b>·</b> Z <b>·</b> X</span></div>
+      <div class="render-controls"><label for="lighting-mode">Luz<select id="lighting-mode"><option value="study">Estudio</option><option value="relief">Relieve</option></select></label><label class="quality-control" for="render-quality">Nitidez<select id="render-quality"><option value="auto">Automática</option><option value="sharp">Alta</option><option value="fast">Fluida</option></select></label></div>
+      <div class="orientation"><span>VISTA</span><strong id="view-orientation">ANTERIOR</strong><span class="axis">↑ SUPERIOR</span></div>
+      <div id="layer-loading" class="layer-loading" role="status" hidden><span id="layer-loading-text">Preparando capa…</span><progress id="layer-loading-progress" max="100" value="0" aria-label="Carga de la capa"></progress></div>
       <div id="loading" class="loading" role="status"><div class="loading-mark">✳</div><div class="spinner"></div><span>Preparando el atlas…</span><progress id="loading-progress" max="100" value="0" aria-label="Carga del atlas"></progress></div>
       <svg id="label-connector" class="label-connector" aria-hidden="true" hidden><line/><circle r="3"/></svg>
-      <div id="floating-label" class="floating-label" hidden><i></i><span></span></div>
+      <div id="floating-label" class="floating-label" hidden><small id="selection-state">SELECCIÓN</small><div><i></i><span></span></div></div>
       <div class="viewport-bottom"><span id="visible-count">— estructuras visibles</span><span class="gesture-help">Un dedo: girar <b>·</b> Dos dedos: acercar y desplazar</span></div>
       <div class="view-tools"><button id="reset-view" title="Restaurar vista completa" aria-label="Restaurar vista completa">⟲</button><button id="front-view" title="Vista anterior" aria-label="Vista anterior">A</button><button id="back-view" title="Vista posterior" aria-label="Vista posterior">P</button></div>
     </section>
@@ -80,6 +86,9 @@
         <div class="study-actions"><button id="focus" class="primary">Enfocar <span>◎</span></button><button id="isolate" aria-pressed="false">Aislar <span>◉</span></button></div>
         <label class="isolate-mode">Modo de aislamiento<select id="isolate-mode"><option value="xray">Rayos X · 15 %</option><option value="hide">Solo la pieza</option></select></label>
         <button id="hide-piece" class="hide-piece">Ocultar pieza <span>−</span></button>
+        <div id="study-skeleton" class="study-skeleton" role="status" hidden><span class="sr-only">Cargando ficha anatómica</span><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div id="study-error" class="study-error" role="status" hidden><p>No se pudo cargar la ficha. Puedes seguir explorando el modelo.</p><button id="retry-study">Reintentar ficha ↻</button></div>
+        <div id="study-content">
         <div class="medical-section"><h3>01 <span>Descripción anatómica</span></h3><p id="study-description"></p></div>
         <div class="medical-section"><h3>02 <span>Inserciones / Articulaciones</span></h3><p id="study-insertions"></p></div>
         <div class="medical-section"><h3>03 <span>Origen / Fijación proximal</span></h3><p id="study-origin"></p></div>
@@ -88,11 +97,12 @@
         <div class="medical-section"><h3>06 <span>Función</span></h3><p id="study-function"></p></div>
         <details class="sources"><summary>Fuentes y revisión editorial</summary><p id="study-revision"></p><ul id="study-sources"></ul></details>
         <div class="mesh-id">MESH ID <code id="study-id"></code></div>
+        </div>
       </article>
       <div class="study-footer"><span>✳</span> Aprende explorando.</div>
     </aside>
   </main>
-  <nav class="tablet-dock" aria-label="Paneles de estudio"><button id="toggle-explorer" aria-expanded="false" aria-controls="explorer-panel">☷ <span>Explorador</span></button><button id="tablet-section">◎ <span>Ver sección</span></button><button id="toggle-study" aria-expanded="false" aria-controls="study-panel">≡ <span>Ficha</span></button></nav>
+  <nav class="tablet-dock" aria-label="Paneles de estudio"><button id="toggle-explorer" data-panel="explorer" aria-expanded="false" aria-controls="explorer-panel">☷ <span>Explorador</span></button><button id="tablet-section">◎ <span>Ver sección</span></button><button id="toggle-study" data-panel="study" aria-expanded="false" aria-controls="study-panel">≡ <span>Ficha</span></button></nav>
   <section class="encyclopedia" aria-label="Ficha enciclopédica inferior"><div><span class="eyebrow">WIKIPEDIA EN ESPAÑOL</span><h2 id="wiki-title">Texto enciclopédico de la estructura</h2><p id="wiki-status" role="status" aria-live="polite">Selecciona una pieza para consultar su resumen. Los textos se mantienen en memoria.</p></div><div><p id="wiki-extract"></p><a id="wiki-link" target="_blank" rel="noopener noreferrer" hidden>Leer artículo y autores ↗</a><small id="wiki-license"></small></div></section>
   <footer class="footer"><span><i></i> <span id="status" role="status" aria-live="polite">Iniciando visor</span></span><span>ATLAS / ESTUDIO 3D <b>·</b> Z-Anatomy · CC BY-SA</span></footer>
   <script type="module" src="./static/viewer.js"></script>
