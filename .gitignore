@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+*.pyc
+data/wiki-cache/
+static/models/*.glb
+artifacts/

@@ -1,0 +1,6 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
+  "terminal.integrated.cwd": "${workspaceFolder}",
+  "files.exclude": {"**/__pycache__": true},
+  "search.exclude": {".venv": true, "artifacts": true}
+}

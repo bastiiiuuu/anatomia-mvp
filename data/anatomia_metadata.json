@@ -1,0 +1,252 @@
+{
+  "schema_version": 1,
+  "model": {
+    "url": null,
+    "source": "demo",
+    "title": "Rodilla · geometría esquemática",
+    "license": "Geometría original del MVP",
+    "note": "Proporciones, inserciones y lateralidad visuales simplificadas; no es un atlas anatómico."
+  },
+  "structures": [
+    {
+      "Mesh_ID": "demo_femur",
+      "catalog_key": "femur",
+      "nombre": "Fémur",
+      "sistema": "Sistema óseo",
+      "region": "Miembro inferior · Muslo",
+      "capa": "oseo",
+      "nombre_oficial_ta2": "Femur",
+      "descripcion": "Hueso largo del muslo. En esta escena se representa su extremo distal.",
+      "inserciones_articulaciones": "Articula con tibia y rótula en la rodilla; proximalmente con el hueso coxal.",
+      "funcion": "Transmite cargas y participa en la movilidad del miembro inferior.",
+      "aliases": [
+        "femur",
+        "hueso del muslo",
+        "thigh bone"
+      ],
+      "sources": [
+        {
+          "title": "FIPAT · Terminologia Anatomica, segunda edición, parte 2",
+          "url": "https://cdn.dal.ca/content/dam/dalhousie/pdf/library/FIPAT/TA2/FIPAT-TA2-Part-2.pdf"
+        },
+        {
+          "title": "NCBI Bookshelf · Anatomía de la rodilla",
+          "url": "https://www.ncbi.nlm.nih.gov/books/NBK500017/"
+        }
+      ],
+      "revision": "con_fuentes_pendiente_revision_docente"
+    },
+    {
+      "Mesh_ID": "demo_tibia",
+      "catalog_key": "tibia",
+      "nombre": "Tibia",
+      "sistema": "Sistema óseo",
+      "region": "Miembro inferior · Pierna",
+      "capa": "oseo",
+      "nombre_oficial_ta2": "Tibia",
+      "descripcion": "Hueso medial de la pierna; su extremo proximal forma la meseta tibial.",
+      "inserciones_articulaciones": "Articula con el fémur, la fíbula y el talo. Recibe el ligamento patelar en su tuberosidad.",
+      "funcion": "Soporta cargas y participa en rodilla y tobillo.",
+      "aliases": [
+        "shin bone",
+        "tibia"
+      ],
+      "sources": [
+        {
+          "title": "FIPAT · Terminologia Anatomica, segunda edición, parte 2",
+          "url": "https://cdn.dal.ca/content/dam/dalhousie/pdf/library/FIPAT/TA2/FIPAT-TA2-Part-2.pdf"
+        },
+        {
+          "title": "NCBI Bookshelf · Anatomía de la rodilla",
+          "url": "https://www.ncbi.nlm.nih.gov/books/NBK500017/"
+        }
+      ],
+      "revision": "con_fuentes_pendiente_revision_docente"
+    },
+    {
+      "Mesh_ID": "demo_patella",
+      "catalog_key": "patella",
+      "nombre": "Rótula",
+      "sistema": "Sistema óseo",
+      "region": "Miembro inferior · Rodilla",
+      "capa": "oseo",
+      "nombre_oficial_ta2": "Patella",
+      "descripcion": "Hueso sesamoideo situado delante de la rodilla, incluido en el aparato extensor.",
+      "inserciones_articulaciones": "Articula con el fémur. Une el tendón del cuádriceps y el ligamento patelar.",
+      "funcion": "Mejora la acción mecánica del cuádriceps y protege la región anterior de la rodilla.",
+      "aliases": [
+        "kneecap",
+        "patela",
+        "patella",
+        "rotula"
+      ],
+      "sources": [
+        {
+          "title": "FIPAT · Terminologia Anatomica, segunda edición, parte 2",
+          "url": "https://cdn.dal.ca/content/dam/dalhousie/pdf/library/FIPAT/TA2/FIPAT-TA2-Part-2.pdf"
+        },
+        {
+          "title": "NCBI Bookshelf · Anatomía de la rodilla",
+          "url": "https://www.ncbi.nlm.nih.gov/books/NBK500017/"
+        }
+      ],
+      "revision": "con_fuentes_pendiente_revision_docente"
+    },
+    {
+      "Mesh_ID": "demo_acl",
+      "catalog_key": "acl",
+      "nombre": "Ligamento cruzado anterior",
+      "sistema": "Sistema articular",
+      "region": "Miembro inferior · Rodilla",
+      "capa": "articular",
+      "nombre_oficial_ta2": "Ligamentum cruciatum anterius",
+      "descripcion": "Ligamento intracapsular de la rodilla, separado de la cavidad sinovial.",
+      "inserciones_articulaciones": "Área intercondílea anterior de la tibia y cara medial del cóndilo lateral del fémur.",
+      "funcion": "Limita la traslación anterior de la tibia respecto del fémur.",
+      "aliases": [
+        "ACL",
+        "LCA",
+        "anterior cruciate ligament",
+        "ligamentum cruciatum anterius"
+      ],
+      "sources": [
+        {
+          "title": "FIPAT · Terminologia Anatomica, segunda edición, parte 2",
+          "url": "https://cdn.dal.ca/content/dam/dalhousie/pdf/library/FIPAT/TA2/FIPAT-TA2-Part-2.pdf"
+        },
+        {
+          "title": "NCBI Bookshelf · Anatomía de la rodilla",
+          "url": "https://www.ncbi.nlm.nih.gov/books/NBK500017/"
+        }
+      ],
+      "revision": "con_fuentes_pendiente_revision_docente"
+    },
+    {
+      "Mesh_ID": "demo_pcl",
+      "catalog_key": "pcl",
+      "nombre": "Ligamento cruzado posterior",
+      "sistema": "Sistema articular",
+      "region": "Miembro inferior · Rodilla",
+      "capa": "articular",
+      "nombre_oficial_ta2": "Ligamentum cruciatum posterius",
+      "descripcion": "Ligamento intracapsular y extrasinovial que cruza al ligamento anterior.",
+      "inserciones_articulaciones": "Área intercondílea posterior de la tibia y cara lateral del cóndilo medial del fémur.",
+      "funcion": "Limita la traslación posterior de la tibia respecto del fémur.",
+      "aliases": [
+        "LCP",
+        "PCL",
+        "ligamentum cruciatum posterius",
+        "posterior cruciate ligament"
+      ],
+      "sources": [
+        {
+          "title": "FIPAT · Terminologia Anatomica, segunda edición, parte 2",
+          "url": "https://cdn.dal.ca/content/dam/dalhousie/pdf/library/FIPAT/TA2/FIPAT-TA2-Part-2.pdf"
+        },
+        {
+          "title": "NCBI Bookshelf · Ligamento cruzado posterior",
+          "url": "https://www.ncbi.nlm.nih.gov/books/NBK535416/"
+        }
+      ],
+      "revision": "con_fuentes_pendiente_revision_docente"
+    },
+    {
+      "Mesh_ID": "demo_patellar_ligament",
+      "catalog_key": "patellar_ligament",
+      "nombre": "Ligamento patelar",
+      "sistema": "Sistema articular",
+      "region": "Miembro inferior · Rodilla",
+      "capa": "articular",
+      "nombre_oficial_ta2": "Ligamentum patellae",
+      "descripcion": "Banda fibrosa distal del aparato extensor.",
+      "inserciones_articulaciones": "Ápice de la rótula y tuberosidad tibial.",
+      "funcion": "Transmite la tracción del cuádriceps a la tibia.",
+      "aliases": [
+        "ligamento rotuliano",
+        "ligamentum patellae",
+        "patellar ligament",
+        "tendón rotuliano"
+      ],
+      "sources": [
+        {
+          "title": "FIPAT · Terminologia Anatomica, segunda edición, parte 2",
+          "url": "https://cdn.dal.ca/content/dam/dalhousie/pdf/library/FIPAT/TA2/FIPAT-TA2-Part-2.pdf"
+        },
+        {
+          "title": "NCBI Bookshelf · Recto femoral",
+          "url": "https://www.ncbi.nlm.nih.gov/books/NBK539897/"
+        }
+      ],
+      "revision": "con_fuentes_pendiente_revision_docente"
+    },
+    {
+      "Mesh_ID": "demo_rectus_femoris",
+      "catalog_key": "rectus_femoris",
+      "nombre": "Recto femoral",
+      "sistema": "Sistema muscular",
+      "region": "Miembro inferior · Muslo",
+      "capa": "muscular",
+      "nombre_oficial_ta2": "Musculus rectus femoris",
+      "descripcion": "Componente superficial del cuádriceps. La demo muestra un segmento de su vientre, sin representar su origen.",
+      "inserciones_articulaciones": "Origen en espina ilíaca anteroinferior y región supraacetabular; inserción en rótula por el tendón cuadricipital y en tibia mediante el ligamento patelar.",
+      "funcion": "Extiende la rodilla y contribuye a flexionar la cadera.",
+      "aliases": [
+        "cuádriceps",
+        "musculus rectus femoris",
+        "quadriceps",
+        "recto anterior",
+        "rectus femoris"
+      ],
+      "sources": [
+        {
+          "title": "FIPAT · Terminologia Anatomica, segunda edición, parte 2",
+          "url": "https://cdn.dal.ca/content/dam/dalhousie/pdf/library/FIPAT/TA2/FIPAT-TA2-Part-2.pdf"
+        },
+        {
+          "title": "NCBI Bookshelf · Recto femoral",
+          "url": "https://www.ncbi.nlm.nih.gov/books/NBK539897/"
+        }
+      ],
+      "revision": "con_fuentes_pendiente_revision_docente"
+    }
+  ],
+  "hierarchy": {
+    "Sistema óseo": {
+      "Miembro inferior · Muslo": {
+        "Fémur": [
+          "demo_femur"
+        ]
+      },
+      "Miembro inferior · Pierna": {
+        "Tibia": [
+          "demo_tibia"
+        ]
+      },
+      "Miembro inferior · Rodilla": {
+        "Rótula": [
+          "demo_patella"
+        ]
+      }
+    },
+    "Sistema articular": {
+      "Miembro inferior · Rodilla": {
+        "Ligamento cruzado anterior": [
+          "demo_acl"
+        ],
+        "Ligamento cruzado posterior": [
+          "demo_pcl"
+        ],
+        "Ligamento patelar": [
+          "demo_patellar_ligament"
+        ]
+      }
+    },
+    "Sistema muscular": {
+      "Miembro inferior · Muslo": {
+        "Recto femoral": [
+          "demo_rectus_femoris"
+        ]
+      }
+    }
+  }
+}

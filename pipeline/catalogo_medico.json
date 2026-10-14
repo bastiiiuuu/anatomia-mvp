@@ -1,0 +1,59 @@
+{
+  "sources": {
+    "ta2": {"title": "FIPAT · Terminologia Anatomica, segunda edición, parte 2", "url": "https://cdn.dal.ca/content/dam/dalhousie/pdf/library/FIPAT/TA2/FIPAT-TA2-Part-2.pdf"},
+    "rodilla": {"title": "NCBI Bookshelf · Anatomía de la rodilla", "url": "https://www.ncbi.nlm.nih.gov/books/NBK500017/"},
+    "lcp": {"title": "NCBI Bookshelf · Ligamento cruzado posterior", "url": "https://www.ncbi.nlm.nih.gov/books/NBK535416/"},
+    "recto": {"title": "NCBI Bookshelf · Recto femoral", "url": "https://www.ncbi.nlm.nih.gov/books/NBK539897/"}
+  },
+  "entries": [
+    {
+      "key": "femur", "nombre": "Fémur", "nombre_oficial_ta2": "Femur", "sistema": "Sistema óseo", "region": "Miembro inferior · Muslo", "capa": "oseo",
+      "aliases": ["femur", "hueso del muslo", "thigh bone"], "wikipedia_title": "Fémur",
+      "descripcion": "Hueso largo del muslo. En esta escena se representa su extremo distal.",
+      "inserciones_articulaciones": "Articula con tibia y rótula en la rodilla; proximalmente con el hueso coxal.",
+      "funcion": "Transmite cargas y participa en la movilidad del miembro inferior.", "source_keys": ["ta2", "rodilla"]
+    },
+    {
+      "key": "tibia", "nombre": "Tibia", "nombre_oficial_ta2": "Tibia", "sistema": "Sistema óseo", "region": "Miembro inferior · Pierna", "capa": "oseo",
+      "aliases": ["tibia", "shin bone"], "wikipedia_title": "Tibia",
+      "descripcion": "Hueso medial de la pierna; su extremo proximal forma la meseta tibial.",
+      "inserciones_articulaciones": "Articula con el fémur, la fíbula y el talo. Recibe el ligamento patelar en su tuberosidad.",
+      "funcion": "Soporta cargas y participa en rodilla y tobillo.", "source_keys": ["ta2", "rodilla"]
+    },
+    {
+      "key": "patella", "nombre": "Rótula", "nombre_oficial_ta2": "Patella", "sistema": "Sistema óseo", "region": "Miembro inferior · Rodilla", "capa": "oseo",
+      "aliases": ["rotula", "patella", "patela", "kneecap"], "wikipedia_title": "Rótula",
+      "descripcion": "Hueso sesamoideo situado delante de la rodilla, incluido en el aparato extensor.",
+      "inserciones_articulaciones": "Articula con el fémur. Une el tendón del cuádriceps y el ligamento patelar.",
+      "funcion": "Mejora la acción mecánica del cuádriceps y protege la región anterior de la rodilla.", "source_keys": ["ta2", "rodilla"]
+    },
+    {
+      "key": "acl", "nombre": "Ligamento cruzado anterior", "nombre_oficial_ta2": "Ligamentum cruciatum anterius", "sistema": "Sistema articular", "region": "Miembro inferior · Rodilla", "capa": "articular",
+      "aliases": ["LCA", "ACL", "anterior cruciate ligament", "ligamentum cruciatum anterius"], "wikipedia_title": "Ligamento cruzado anterior",
+      "descripcion": "Ligamento intracapsular de la rodilla, separado de la cavidad sinovial.",
+      "inserciones_articulaciones": "Área intercondílea anterior de la tibia y cara medial del cóndilo lateral del fémur.",
+      "funcion": "Limita la traslación anterior de la tibia respecto del fémur.", "source_keys": ["ta2", "rodilla"]
+    },
+    {
+      "key": "pcl", "nombre": "Ligamento cruzado posterior", "nombre_oficial_ta2": "Ligamentum cruciatum posterius", "sistema": "Sistema articular", "region": "Miembro inferior · Rodilla", "capa": "articular",
+      "aliases": ["LCP", "PCL", "posterior cruciate ligament", "ligamentum cruciatum posterius"], "wikipedia_title": "Ligamento cruzado posterior",
+      "descripcion": "Ligamento intracapsular y extrasinovial que cruza al ligamento anterior.",
+      "inserciones_articulaciones": "Área intercondílea posterior de la tibia y cara lateral del cóndilo medial del fémur.",
+      "funcion": "Limita la traslación posterior de la tibia respecto del fémur.", "source_keys": ["ta2", "lcp"]
+    },
+    {
+      "key": "patellar_ligament", "nombre": "Ligamento patelar", "nombre_oficial_ta2": "Ligamentum patellae", "sistema": "Sistema articular", "region": "Miembro inferior · Rodilla", "capa": "articular",
+      "aliases": ["ligamento rotuliano", "tendón rotuliano", "patellar ligament", "ligamentum patellae"], "wikipedia_title": "Ligamento rotuliano",
+      "descripcion": "Banda fibrosa distal del aparato extensor.",
+      "inserciones_articulaciones": "Ápice de la rótula y tuberosidad tibial.",
+      "funcion": "Transmite la tracción del cuádriceps a la tibia.", "source_keys": ["ta2", "recto"]
+    },
+    {
+      "key": "rectus_femoris", "nombre": "Recto femoral", "nombre_oficial_ta2": "Musculus rectus femoris", "sistema": "Sistema muscular", "region": "Miembro inferior · Muslo", "capa": "muscular",
+      "aliases": ["rectus femoris", "recto anterior", "musculus rectus femoris", "cuádriceps", "quadriceps"], "wikipedia_title": "Músculo recto femoral",
+      "descripcion": "Componente superficial del cuádriceps. La demo muestra un segmento de su vientre, sin representar su origen.",
+      "inserciones_articulaciones": "Origen en espina ilíaca anteroinferior y región supraacetabular; inserción en rótula por el tendón cuadricipital y en tibia mediante el ligamento patelar.",
+      "funcion": "Extiende la rodilla y contribuye a flexionar la cadera.", "source_keys": ["ta2", "recto"]
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "_note": "Las claves son ejemplos: reemplázalas por los nombres EXACTOS de tus objetos de Blender. La lateralidad debe conservarse por instancia; no unir izquierda y derecha.",
+  "attribution": "Completar autores, versión, origen y licencia exacta del archivo descargado.",
+  "structures": {
+    "Femur_L": {"catalog_key": "femur", "nombre": "Fémur izquierdo", "sistema": "Sistema óseo", "region": "Miembro inferior izquierdo · Muslo", "capa": "oseo", "side": "left", "aliases": ["fémur izquierdo", "left femur"]},
+    "Tibia_L": {"catalog_key": "tibia", "nombre": "Tibia izquierda", "sistema": "Sistema óseo", "region": "Miembro inferior izquierdo · Pierna", "capa": "oseo", "side": "left"},
+    "Ligamentum cruciatum anterius_L": {"catalog_key": "acl", "nombre": "Ligamento cruzado anterior izquierdo", "sistema": "Sistema articular", "region": "Miembro inferior izquierdo · Rodilla", "capa": "articular", "side": "left"}
+  }
+}
