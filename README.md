@@ -110,6 +110,8 @@ Cada selección solicita `/api/estructuras/{Mesh_ID}/wikipedia`. El backend usa 
 
 Las respuestas antiguas no pueden sobrescribir la ficha de una selección nueva. Una ausencia, desambiguación, fallo de red o falta de correspondencia editorial se muestra como estado, conservando la ficha local. No se descarga HTML, imágenes o miniaturas. Se puede definir `WIKIPEDIA_USER_AGENT` con un contacto real para una instalación pública.
 
+Las porciones palpebral/orbitaria del orbicular y otras cabezas musculares con correspondencia explícita enlazan al artículo español del músculo completo. La ficha señala ese alcance y conserva las notas de cada pieza: no atribuye automáticamente información del músculo completo a una porción. Una errata ortográfica del nombre palpebral se corrige únicamente en la presentación, preservando la traducción fuente y el término latino.
+
 La nomenclatura y geometría proceden de un atlas abierto; eso no certifica todas las notas ni la correspondencia con artículos. Las notas locales siguen pendientes de revisión docente. Si la selección corresponde a una porción, se indica cuando las notas se refieren al músculo o ligamento completo. Los títulos se toman del nombre explícito o del diccionario y no se asignan por una búsqueda difusa que pueda confundir estructuras.
 
 | Ruta | Uso |

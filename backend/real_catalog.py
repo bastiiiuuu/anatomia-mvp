@@ -10,6 +10,7 @@ import re
 import struct
 import uuid
 from collections import Counter
+from urllib.parse import quote
 
 from .muscle_sections import study_metadata
 from pathlib import Path
@@ -119,6 +120,30 @@ TRANSLATIONS = {
     "Platysma": ("Platisma", "Platisma"), "Iliotibial tract": ("Tracto iliotibial", "Tracto iliotibial"), "Fascia lata": ("Fascia lata", "Fascia lata"),
     "Linea alba": ("Línea alba", "Línea alba"), "Plantar aponeurosis": ("Aponeurosis plantar", "Aponeurosis plantar"),
     "Palmar aponeurosis": ("Aponeurosis palmar", "Aponeurosis palmar"),
+}
+
+# Exact parent muscles for portions whose own TA2 names have no standalone article.
+# Titles were verified through es.wikipedia.org's query API; local medical notes
+# remain unchanged. The study card explicitly distinguishes piece vs parent article.
+WIKIPEDIA_PARENTS = {}
+for sources, title in [
+    (["Palpebral part of orbicularis oculi", "Orbital part of orbicularis oculi"], "Músculo orbicular de los ojos"),
+    (["Superficial head of pronator teres", "Deep head of pronator teres"], "Músculo pronador redondo"),
+    (["Humeral head of flexor carpi ulnaris", "Ulnar head of flexor carpi ulnaris"], "Músculo flexor cubital del carpo"),
+    (["Humeral head of extensor carpi ulnaris", "Ulnar head of extensor carpi ulnaris"], "Músculo extensor cubital del carpo"),
+    (["Inferior head of lateral pterygoid muscle", "Superior head of lateral pterygoid muscle"], "Músculo pterigoideo lateral"),
+    (["Oblique head of adductor pollicis", "Transverse head of adductor pollicis"], "Músculo aductor del pulgar"),
+    (["Oblique head of adductor hallucis", "Transverse head of adductor hallucis"], "Músculo aductor del dedo gordo"),
+    (["Lateral head of flexor hallucis brevis", "Medial head of flexor hallucis brevis"], "Músculo flexor corto del dedo gordo"),
+    (["Oblique part of cricothyroid muscle", "Straight part of cricothyroid muscle"], "Músculo cricotiroideo"),
+]:
+    for source in sources:
+        WIKIPEDIA_PARENTS[source] = title
+
+# A spelling correction for display only; preserve the source translation and
+# Latin TA2 term so provenance and exact mesh identity remain traceable.
+DISPLAY_CORRECTIONS = {
+    "Palpebral part of orbicularis oculi": "Parte palpebral del músculo orbicular del ojo",
 }
 
 
@@ -258,10 +283,16 @@ def build_real_metadata(root: Path):
                 if name == base and spanish.get("spanish"):
                     name = spanish["spanish"]
                     wiki = name
+                if base in DISPLAY_CORRECTIONS:
+                    name = DISPLAY_CORRECTIONS[base]
+                if base in WIKIPEDIA_PARENTS:
+                    wiki = WIKIPEDIA_PARENTS[base]
                 system, layer, subtype = category(base, kind, reference)
                 region = region_of(base, term.get("path", []), reference)
                 mesh_id = "real_" + uuid.uuid5(uuid.NAMESPACE_URL, "z-anatomy:" + key).hex
                 aliases = [base, clean, name, spanish.get("spanish", ""), term.get("name_en", ""), term.get("ta2_latin", "")]
+                if base in WIKIPEDIA_PARENTS:
+                    aliases.append(wiki)
                 if reference:
                     aliases += reference["aliases"]
                 if base == "Hip bone":
@@ -291,6 +322,13 @@ def build_real_metadata(root: Path):
                 if spanish:
                     record["translation_source"] = "Español · TA2.csv distribuido por Z-Anatomy"
                     record["sources"].append({"title": "Z-Anatomy · columna Español del catálogo", "url": "https://github.com/Z-Anatomy/Models-of-human-anatomy/blob/master/TA2.csv"})
+                if base in DISPLAY_CORRECTIONS:
+                    record["source_translation"] = spanish.get("spanish", "")
+                    record["translation_note"] = "Se corrigió una errata ortográfica para mostrar el nombre; se conserva la traducción original del atlas."
+                if base in WIKIPEDIA_PARENTS:
+                    record["reference_scope"] = "musculo_completo"
+                    record["descripcion"] += " La referencia enciclopédica describe el músculo completo; la geometría seleccionada corresponde solo a esta porción o cabeza."
+                    record["sources"].append({"title": "Wikipedia · músculo completo de referencia", "url": "https://es.wikipedia.org/wiki/" + quote(wiki.replace(" ", "_"))})
                 if reference:
                     record["sources"] += reference.get("sources", [])
                 groups[key] = {"asset": kind, "record": record}

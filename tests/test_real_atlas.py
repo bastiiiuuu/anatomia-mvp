@@ -102,6 +102,18 @@ class RealAtlasTests(unittest.TestCase):
             clinical = client.get("/api/estructuras/" + records[0]["Mesh_ID"]).json()
             self.assertIn("descripcion", clinical)
 
+    def test_portions_link_to_verified_parent_articles_without_renaming_geometry(self):
+        for original, title in [("Palpebral part of orbicularis oculi", "Músculo orbicular de los ojos"),
+                                ("Deep head of pronator teres", "Músculo pronador redondo")]:
+            parts=[s for s in self.metadata["structures"] if s["nombre_original"]==original]
+            self.assertEqual(len(parts),2)
+            self.assertTrue(all(s["wikipedia_title"]==title and s["reference_scope"]=="musculo_completo" for s in parts))
+            self.assertTrue(all("solo a esta porción" in s["descripcion"] for s in parts))
+            self.assertTrue(all("Pendiente" in s["inervacion"] for s in parts),'No invented clinical notes are copied from a parent article')
+            if original == "Palpebral part of orbicularis oculi":
+                self.assertTrue(all("músculo" in s["nombre"] and "múculo" in s["source_translation"] for s in parts))
+                self.assertTrue(all(s["source_translation"] in s["aliases"] for s in parts))
+
 
 if __name__ == "__main__":
     unittest.main()
