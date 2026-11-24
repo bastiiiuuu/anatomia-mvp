@@ -1,3 +1,8 @@
+/**
+ * Las visitas solo se envían desde la publicación configurada y cuando no existe una señal de
+ * exclusión. Los pulsos se suspenden al ocultar la página y los fallos del colector no deben
+ * impedir usar el atlas.
+ */
 // One anonymous page instance. No search terms, muscle selection or identifiers
 // from other websites are sent. This module never touches the WebGL frame loop.
 const optOutKey='atlas-traffic-opt-out';

@@ -1,3 +1,8 @@
+/**
+ * La colocación de etiquetas considera los límites del visor y la zona ocupada por la
+ * anatomía. El resultado reutilizable evita crear elementos o medidas nuevas en cada
+ * fotograma.
+ */
 const clamp = (n, min, max) => Math.max(min, Math.min(n, max));
 
 // Keep study labels beside the projected anatomy when space permits. Pure screen

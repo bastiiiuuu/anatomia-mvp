@@ -1,3 +1,7 @@
+/**
+ * Las preferencias de paneles se conservan al entrar al modo de concentración. El registro de
+ * eventos se recibe del visor para que todos los listeners puedan retirarse durante su cierre.
+ */
 // Panel preferences survive entering focus mode; overlays never resize the canvas.
 // The caller supplies its lifecycle-bound listener helper for complete teardown.
 export class StudioUI {

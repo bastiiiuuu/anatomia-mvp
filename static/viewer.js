@@ -1,3 +1,8 @@
+/**
+ * La selección enlaza las mallas con sus identidades del catálogo, sin depender de nombres
+ * saneados por Three.js. Las cargas y la salida del visor comparten cancelación y liberación
+ * de recursos para no conservar trabajo de una escena que ya no está activa.
+ */
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';

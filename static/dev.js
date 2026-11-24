@@ -1,3 +1,8 @@
+/**
+ * La comprobación de cambios solo participa en el modo de desarrollo habilitado por el
+ * servidor. La edición estática no necesita un backend ni debe hacer polling continuo para
+ * funcionar.
+ */
 // Desktop live editing only. Tablets never poll the development server while studying.
 const mobile=matchMedia('(pointer: coarse)').matches||navigator.maxTouchPoints>0;
 const staticMode=document.documentElement.dataset.runtime==='static';

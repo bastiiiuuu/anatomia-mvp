@@ -1,3 +1,8 @@
+/**
+ * El render se solicita cuando cambia la escena o continúa una interacción. La adaptación de
+ * resolución usa muestras de movimiento, no períodos de reposo, para no confundir inactividad
+ * con una GPU lenta.
+ */
 /** One requestAnimationFrame chain, asleep when the camera is still. */
 export class DemandFrames {
   constructor(draw, active=()=>false) {

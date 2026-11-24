@@ -1,3 +1,8 @@
+/**
+ * El recorrido de cámara interpola posición y objetivo a partir de un instante de inicio
+ * común. La transición debe poder detenerse al comenzar otra interacción sin dejar una
+ * animación compitiendo por la vista.
+ */
 import { Spherical, Vector3, MathUtils } from 'three';
 
 // Orbit around the moving study target instead of taking a chord through anatomy.

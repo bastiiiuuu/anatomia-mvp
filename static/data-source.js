@@ -1,3 +1,8 @@
+/**
+ * El mismo visor puede consultar FastAPI o capítulos JSON de la edición estática. Esta
+ * frontera mantiene el formato de las fichas y limita la caché de capítulos, sin exigir un
+ * servidor Python en GitHub Pages.
+ */
 /** FastAPI locally, static JSON + public Wikipedia on GitHub Pages. */
 export class AtlasData {
   constructor({base,runtime,json,signal}) {

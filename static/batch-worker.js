@@ -1,3 +1,8 @@
+/**
+ * La transformación de geometrías se ejecuta fuera del hilo de interfaz. Los buffers
+ * transferibles evitan copias innecesarias y los reflejos deben conservar la orientación de
+ * triángulos y normales.
+ */
 /* Geometry preparation stays off the UI thread. No dependencies or disk cache. */
 self.onmessage=({data})=>{
   const {id,meshes}=data;

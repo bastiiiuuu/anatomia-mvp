@@ -1,3 +1,8 @@
+/**
+ * Los lotes reducen llamadas de dibujo conservando la geometría y las identidades originales.
+ * La selección se dibuja por separado para mantener el material de la pieza y un picking
+ * exacto.
+ */
 import * as THREE from 'three';
 
 const nextTask = () => new Promise(resolve => setTimeout(resolve, 0));

@@ -1,3 +1,8 @@
+/**
+ * Las variantes de material se comparten sin modificar el material anatómico de origen. Así la
+ * selección y el contexto transparente pueden cambiar sin alterar permanentemente otras
+ * estructuras.
+ */
 import * as THREE from 'three';
 
 export const SELECTION_GREEN = 0x35cc83;
