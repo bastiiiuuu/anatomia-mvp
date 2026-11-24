@@ -48,11 +48,12 @@ Buscar una estructura, seleccionarla, aislarla y restaurar el contexto. Comparar
 .\.venv\Scripts\python.exe tools/export_pages.py
 ```
 
-Las 26 pruebas Python cubren contratos de API, correspondencia entre modelos y fichas, búsquedas, exportación estática y controles del colector de estadísticas. Los scripts de navegador y sus requisitos están en la guía técnica. No se publican promesas de FPS universales ni mejoras de rendimiento sin su contexto de medición.
+Las 27 pruebas Python cubren contratos de API, correspondencia entre modelos y fichas, búsquedas, exportación estática y controles del colector de estadísticas. Los scripts de navegador y sus requisitos están en la guía técnica. No se publican promesas de FPS universales ni mejoras de rendimiento sin su contexto de medición.
 
 ## Licencias y privacidad
 
 Conservar `static/models/SOURCES.md`, los avisos de Z-Anatomy/BodyParts3D/DBCLS y las licencias de los assets y Draco. Los recursos ajenos no se presentan como modelos creados por el autor.
 
 El colector opcional de estadísticas es un servicio separado y tiene datos privados fuera del artefacto público. Consulta su funcionamiento y la opción de exclusión en la guía y en el visor. El nuevo portafolio no necesita ni incorpora ese colector.
+
 

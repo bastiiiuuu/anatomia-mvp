@@ -11,6 +11,9 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 class StaticPagesTests(unittest.TestCase):
+    def test_generated_entry_has_portable_line_endings(self):
+        self.assertNotIn(b"\r\n", (ROOT / "index.html").read_bytes())
+
     @classmethod
     def setUpClass(cls):
         export(ROOT)

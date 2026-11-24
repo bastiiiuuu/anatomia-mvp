@@ -49,7 +49,9 @@ def export(root=ROOT):
     html=html[:match.start(1)]+json.dumps(imports,separators=(",",":"))+html[match.end(1):]
     for path in ("static/viewer.js","static/dev.js","static/analytics.js","static/styles.css","static/studio.css"):
         html=html.replace('"./'+path+'"','"./'+path+'?v='+fingerprint+'"')
-    (root/"index.html").write_text(html,encoding="utf-8")
+    # El artefacto versionado debe ser idéntico en Windows y en los runners Linux.
+    # Un salto CRLF cambia el archivo aunque la versión del catálogo sea la misma.
+    (root/"index.html").write_text(html,encoding="utf-8",newline="\n")
     (root/".nojekyll").write_text("",encoding="utf-8")
     write_json(root/"site-data/build.json",{"version":"0.4.0","fingerprint":fingerprint,"structures":len(compact),"chapters":len(chapters)})
     return {"structures":len(compact),"chapters":len(chapters),"fingerprint":fingerprint}
